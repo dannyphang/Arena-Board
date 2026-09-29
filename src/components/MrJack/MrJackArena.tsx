@@ -133,8 +133,8 @@ export const MrJackArena: React.FC<MrJackArenaProps> = ({
         }
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyDown);
+    return () => window.removeEventListener('keyup', handleKeyDown);
   }, [activeModal, selectedCharId, inspectedCharId]);
 
   // Synchronize state updates

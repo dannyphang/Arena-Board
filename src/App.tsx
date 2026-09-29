@@ -37,17 +37,17 @@ export default function App() {
   // Keyboard shortcut: Esc -> close open modals
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (isVersionOpen) setIsVersionOpen(false);
-        else if (isRulesOpen) setIsRulesOpen(false);
-        else if (isCreateTableOpen) setIsCreateTableOpen(false);
-        else if (isLoginOpen) setIsLoginOpen(false);
-        else if (isProfileOpen) setIsProfileOpen(false);
+      if (e.key === 'Escape' || e.key === 'Esc' || e.keyCode === 27) {
+        setIsVersionOpen(false);
+        setIsRulesOpen(false);
+        setIsCreateTableOpen(false);
+        setIsLoginOpen(false);
+        setIsProfileOpen(false);
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isRulesOpen, isCreateTableOpen, isLoginOpen, isProfileOpen, isVersionOpen]);
+    window.addEventListener('keyup', handleKeyDown);
+    return () => window.removeEventListener('keyup', handleKeyDown);
+  }, []);
 
   const socket = getSocket();
 

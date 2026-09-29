@@ -192,8 +192,8 @@ export const GameArena: React.FC<GameArenaProps> = ({
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyDown);
+    return () => window.removeEventListener('keyup', handleKeyDown);
   }, [handleRotate, handleFlip, placedPieces]);
 
   // Place a piece onto board

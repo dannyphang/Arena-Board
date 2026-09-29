@@ -64,7 +64,7 @@ export function createArenaServer(options?: { isStandalone?: boolean }) {
         name: 'ArenaBoard Real-Time Game Server',
         service: 'Backend & WebSocket Service for Render',
         status: 'online',
-        version: 'v1.5.1',
+        version: 'v1.5.2',
         frontendOrigin: CLIENT_ORIGIN,
         timestamp: new Date().toISOString(),
       });
@@ -87,7 +87,7 @@ export function createArenaServer(options?: { isStandalone?: boolean }) {
   // Version endpoint
   app.get('/api/version', (_req, res) => {
     res.json({
-      version: 'v1.5.1',
+      version: 'v1.5.2',
       buildId: 'bld-20260929-catan-res-colors-v142',
       timestamp: new Date().toISOString(),
       uptime: Math.round(process.uptime()),

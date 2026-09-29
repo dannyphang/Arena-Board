@@ -44,8 +44,8 @@ export const VersionInfoModal: React.FC<VersionInfoModalProps> = ({
         onClose();
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyDown);
+    return () => window.removeEventListener('keyup', handleKeyDown);
   }, [isOpen, onClose]);
 
   // Check server version on open

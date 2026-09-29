@@ -91,6 +91,17 @@ export const TicketToRideArena: React.FC<TicketToRideArenaProps> = ({
     }
   }, [currentPlayer?.pendingDestinations]);
 
+  // Keyboard shortcut: Esc -> deselect tickets in draft panel
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSelectedTickets([]);
+      }
+    };
+    window.addEventListener('keyup', handleKeyDown);
+    return () => window.removeEventListener('keyup', handleKeyDown);
+  }, []);
+
   const handleKeepTickets = () => {
     if (!table?.id || submitting) return;
     setSubmitting(true);

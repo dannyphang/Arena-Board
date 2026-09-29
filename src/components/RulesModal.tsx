@@ -63,8 +63,8 @@ export const RulesModal: React.FC<RulesModalProps> = ({
         onClose();
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyDown);
+    return () => window.removeEventListener('keyup', handleKeyDown);
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;

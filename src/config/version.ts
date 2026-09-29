@@ -14,14 +14,22 @@ export interface AppVersionInfo {
 }
 
 export const APP_VERSION_INFO: AppVersionInfo = {
-  version: 'v1.5.1',
-  releaseDate: '2026-09-29 17:07 UTC',
-  buildId: 'bld-20260929170727-v151',
+  version: 'v1.5.2',
+  releaseDate: '2026-09-29 17:35 UTC',
+  buildId: 'bld-20260929173500-v152',
   environment: typeof window !== 'undefined' ? window.location.hostname : 'production',
   latestPrompt: "Add README, package-lock, and auto-version hook",
   promptDescription:
     "Add README, package-lock, and auto-version hook",
   changeLog: [
+    {
+      version: 'v1.5.2',
+      date: '2026-09-29',
+      prompt: "fix(ui): Make Escape key listeners OS-resilient",
+      highlights: [
+        "fix(ui): Make Escape key listeners OS-resilient\n\n- Switched all global modal and arena 'Escape' keyboard shortcuts from 'keydown' to 'keyup' to prevent the OS or browser from swallowing the event.\n- Upgraded the key check to catch 'Esc' and keyCode 27 fallbacks for non-standard keyboards.\n- Rewrote the global modal closer in App.tsx to unconditionally clear all modal states, preventing hidden stuck states from trapping the event."
+      ],
+    },
     {
       version: 'v1.5.1',
       date: '2026-09-29',

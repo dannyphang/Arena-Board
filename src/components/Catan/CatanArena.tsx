@@ -295,8 +295,8 @@ export const CatanArena: React.FC<CatanArenaProps> = ({
         else if (buildMode !== null) setBuildMode(null);
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyDown);
+    return () => window.removeEventListener('keyup', handleKeyDown);
   }, [isTradeModalOpen, isYearOfPlentyOpen, isMonopolyOpen, buildMode]);
 
   // Shuffle board layout
