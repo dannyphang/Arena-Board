@@ -14,14 +14,22 @@ export interface AppVersionInfo {
 }
 
 export const APP_VERSION_INFO: AppVersionInfo = {
-  version: 'v1.4.2',
-  releaseDate: '2026-09-29 08:20 UTC',
-  buildId: 'bld-20260929-catan-res-colors-v142',
+  version: 'v1.4.3',
+  releaseDate: '2026-09-29 12:33 UTC',
+  buildId: 'bld-20260929123318-v143',
   environment: typeof window !== 'undefined' ? window.location.hostname : 'production',
-  latestPrompt: '1. App version info under footer with interactive version & prompt inspector dialog.\n2. In "Your Resource Cards", card backgrounds styled with their represented colors. Same for Catan Trading Center dialog.',
+  latestPrompt: "Add README, package-lock, and auto-version hook",
   promptDescription:
-    'Version v1.4.2 introduces authentic thematic background colors for all Catan resource cards (Wood = Forest Green, Brick = Terracotta Red, Sheep = Pasture Lime, Wheat = Goldenrod, Ore = Mountain Slate) in both the player hand tray and the Catan Trading Center dialog. Also adds a clickable App Version badge under the footer that reveals the active version, full prompt specification, and server health check to verify the latest deployment in any environment.',
+    "Add README, package-lock, and auto-version hook",
   changeLog: [
+    {
+      version: 'v1.4.3',
+      date: '2026-09-29',
+      prompt: "Add README, package-lock, and auto-version hook",
+      highlights: [
+        "Add README, package-lock, and auto-version hook"
+      ],
+    },
     {
       version: 'v1.4.2',
       date: '2026-09-29',
