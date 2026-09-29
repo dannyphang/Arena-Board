@@ -2,13 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
 
-const msgFilePath = process.argv[2];
-if (!msgFilePath) {
-  console.error('No message file path provided.');
-  process.exit(1);
-}
-
-const commitMsg = fs.readFileSync(msgFilePath, 'utf8').trim();
+const commitMsg = execSync('git log -1 --pretty=%B').toString().trim();
 
 // 1. Bump version in package.json
 const rootPackageJsonPath = path.resolve(import.meta.dirname, '../package.json');
@@ -72,9 +66,10 @@ versionTs = versionTs.replace(/changeLog: \[/, `changeLog: [${newLogEntry}`);
 
 fs.writeFileSync(versionTsPath, versionTs);
 
-// 5. Add all these to git index
+// 5. Add all these to git index and amend commit
 try {
   execSync('git add package.json server/package.json server/src/index.ts src/config/version.ts');
+  execSync('git commit --amend --no-verify --no-edit');
 } catch (e) {
-  console.error('Failed to git add', e);
+  console.error('Failed to git add or amend', e);
 }

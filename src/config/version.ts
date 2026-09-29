@@ -14,14 +14,30 @@ export interface AppVersionInfo {
 }
 
 export const APP_VERSION_INFO: AppVersionInfo = {
-  version: 'v1.4.3',
-  releaseDate: '2026-09-29 12:33 UTC',
-  buildId: 'bld-20260929123318-v143',
+  version: 'v1.4.5',
+  releaseDate: '2026-09-29 12:34 UTC',
+  buildId: 'bld-20260929123408-v145',
   environment: typeof window !== 'undefined' ? window.location.hostname : 'production',
   latestPrompt: "Add README, package-lock, and auto-version hook",
   promptDescription:
     "Add README, package-lock, and auto-version hook",
   changeLog: [
+    {
+      version: 'v1.4.5',
+      date: '2026-09-29',
+      prompt: "Update hook to post-commit",
+      highlights: [
+        "Update hook to post-commit"
+      ],
+    },
+    {
+      version: 'v1.4.4',
+      date: '2026-09-29',
+      prompt: "Add README, package-lock, and auto-version hook",
+      highlights: [
+        "Add README, package-lock, and auto-version hook"
+      ],
+    },
     {
       version: 'v1.4.3',
       date: '2026-09-29',
