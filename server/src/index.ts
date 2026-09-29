@@ -11,11 +11,19 @@ import { MrJackGameState } from '../../src/games/mr-jack/types';
 import { createInitialCatanGame } from '../../src/games/catan/engine';
 import { CatanGameState } from '../../src/games/catan/types';
 
-export function createArenaServer() {
+export function createArenaServer(options?: { isStandalone?: boolean }) {
   const app = express();
   const server = http.createServer(app);
 
-  const PORT = Number(process.env.PORT) || 3000;
+  const isStandalone = options?.isStandalone ?? (process.env.STANDALONE_SERVER === 'true');
+
+  // In unified AI Studio / dev mode, the app MUST bind to port 3000 (default app port).
+  // On Render, Render sets RENDER=true and assigns its own PORT (e.g. 10000).
+  const isRender = process.env.RENDER === 'true' || process.env.IS_RENDER === 'true';
+  const PORT =
+    isRender && process.env.PORT && process.env.PORT !== '8080'
+      ? Number(process.env.PORT)
+      : Number(process.env.DEFAULT_APP_PORT) || 3000;
   const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || '*';
   const corsOrigins = CLIENT_ORIGIN === '*' ? '*' : CLIENT_ORIGIN.split(',').map((s) => s.trim());
 
@@ -47,17 +55,19 @@ export function createArenaServer() {
     pingInterval: 15000,
   });
 
-  // Root status endpoint
-  app.get('/', (_req, res) => {
-    res.json({
-      name: 'ArenaBoard Real-Time Game Server',
-      service: 'Backend & WebSocket Service for Render',
-      status: 'online',
-      version: 'v1.4.2',
-      frontendOrigin: CLIENT_ORIGIN,
-      timestamp: new Date().toISOString(),
+  // Root status endpoint (only in standalone backend mode on Render)
+  if (isStandalone) {
+    app.get('/', (_req, res) => {
+      res.json({
+        name: 'ArenaBoard Real-Time Game Server',
+        service: 'Backend & WebSocket Service for Render',
+        status: 'online',
+        version: 'v1.4.2',
+        frontendOrigin: CLIENT_ORIGIN,
+        timestamp: new Date().toISOString(),
+      });
     });
-  });
+  }
 
   // Health check endpoints for Render and uptime monitoring
   app.get(['/health', '/api/health'], (_req, res) => {
@@ -914,15 +924,10 @@ export function createArenaServer() {
 
 // Standalone start helper for Render or node execution
 export async function startStandaloneServer(port?: number) {
-  const { server, PORT } = createArenaServer();
+  const { server, PORT } = createArenaServer({ isStandalone: true });
   const listenPort = port || PORT;
   server.listen(listenPort, '0.0.0.0', () => {
     console.log(`[ArenaBoard Backend] Running standalone at http://0.0.0.0:${listenPort}`);
   });
   return server;
-}
-
-// If executed directly with node / tsx (e.g. `node server/src/index.ts` or on Render)
-if (process.env.STANDALONE_SERVER === 'true' || process.env.RENDER === 'true') {
-  startStandaloneServer();
 }
