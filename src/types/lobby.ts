@@ -1,4 +1,4 @@
-export type GameType = 'genius-square' | 'mr-jack' | 'catan' | 'genius-star' | 'quoridor' | 'pentago';
+export type GameType = 'genius-square' | 'mr-jack' | 'catan' | 'ticket-to-ride' | 'genius-star' | 'quoridor' | 'pentago';
 
 export type TimeControl = 'casual' | 'blitz-1m' | 'rapid-3m' | 'standard-5m';
 
@@ -7,6 +7,7 @@ export type TableStatus = 'waiting' | 'in-game' | 'finished';
 import { CoordString, PlacedPiece } from '../games/genius-square/types';
 import { MrJackGameState, Role } from '../games/mr-jack/types';
 import { CatanGameState } from '../games/catan/types';
+import { TTRGameState } from '../games/ticket-to-ride/types';
 
 export interface PlayerSlot {
   userId: string;
@@ -55,6 +56,7 @@ export interface TableRoom {
   targetVictoryPoints?: number; // for Catan
   mrJackState?: MrJackGameState; // for Mr. Jack
   catanState?: CatanGameState; // for Catan
+  ttrState?: TTRGameState; // for Ticket to Ride
   gameStartTime?: number;
   winner?: {
     id: string;

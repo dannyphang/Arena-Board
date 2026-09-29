@@ -10,6 +10,8 @@ import { createInitialMrJackGame } from '../../src/games/mr-jack/engine';
 import { MrJackGameState } from '../../src/games/mr-jack/types';
 import { createInitialCatanGame } from '../../src/games/catan/engine';
 import { CatanGameState } from '../../src/games/catan/types';
+import { createInitialTTRGame, processTTRAction } from '../../src/games/ticket-to-ride/engine';
+import { TTRGameState, TTRAction } from '../../src/games/ticket-to-ride/types';
 
 export function createArenaServer(options?: { isStandalone?: boolean }) {
   const app = express();
@@ -62,12 +64,14 @@ export function createArenaServer(options?: { isStandalone?: boolean }) {
         name: 'ArenaBoard Real-Time Game Server',
         service: 'Backend & WebSocket Service for Render',
         status: 'online',
-        version: 'v1.4.5',
+        version: 'v1.5.1',
         frontendOrigin: CLIENT_ORIGIN,
         timestamp: new Date().toISOString(),
       });
     });
   }
+
+  app.get('/pong', (_req, res) => res.send('pong'));
 
   // Health check endpoints for Render and uptime monitoring
   app.get(['/health', '/api/health'], (_req, res) => {
@@ -83,7 +87,7 @@ export function createArenaServer(options?: { isStandalone?: boolean }) {
   // Version endpoint
   app.get('/api/version', (_req, res) => {
     res.json({
-      version: 'v1.4.5',
+      version: 'v1.5.1',
       buildId: 'bld-20260929-catan-res-colors-v142',
       timestamp: new Date().toISOString(),
       uptime: Math.round(process.uptime()),
@@ -269,9 +273,9 @@ export function createArenaServer(options?: { isStandalone?: boolean }) {
             });
           }
 
-          const maxPlayers = data.maxPlayers || (data.gameId === 'catan' ? 4 : 2);
+          const maxPlayers = data.maxPlayers || (data.gameId === 'catan' ? 4 : data.gameId === 'ticket-to-ride' ? 5 : 2);
           const isAllBots = players.length >= 2 && !data.hasHumanSlots;
-          const initialStatus = (data.gameId === 'catan' && isAllBots) ? 'in-game' : 'waiting';
+          const initialStatus = isAllBots ? 'in-game' : 'waiting';
           const targetVP = data.targetVictoryPoints || (data.gameId === 'catan' ? 10 : undefined);
 
           const newTable: TableRoom = {
@@ -317,6 +321,8 @@ export function createArenaServer(options?: { isStandalone?: boolean }) {
               isBot: !!p.isBot,
             }));
             newTable.catanState = createInitialCatanGame(playerConfigs, targetVP || 10);
+          } else if (data.gameId === 'ticket-to-ride' && isAllBots) {
+            newTable.ttrState = createInitialTTRGame(newTable.players.map((p) => p.userId));
           }
 
           tables.set(roomId, newTable);
@@ -354,7 +360,7 @@ export function createArenaServer(options?: { isStandalone?: boolean }) {
           return;
         }
 
-        const maxAllowed = table.maxPlayers || (table.gameId === 'catan' ? 4 : 2);
+        const maxAllowed = table.maxPlayers || (table.gameId === 'catan' ? 4 : table.gameId === 'ticket-to-ride' ? 5 : 2);
         if (table.players.length < maxAllowed && table.status === 'waiting') {
           const newPlayer: PlayerSlot = {
             userId: user?.id || 'guest_' + socket.id.substring(0, 5),
@@ -427,6 +433,17 @@ export function createArenaServer(options?: { isStandalone?: boolean }) {
           senderName: 'Arena System',
           senderAvatar: '🏝️',
           text: `The Settlers of Catan has begun! Explore the hexes and build your colonies to ${vpTarget} VP.`,
+          timestamp: Date.now(),
+          isSystem: true,
+        });
+      } else if (table.gameId === 'ticket-to-ride') {
+        table.ttrState = createInitialTTRGame(table.players.map((p) => p.userId));
+        table.messages.push({
+          id: 'msg_' + Date.now(),
+          senderId: 'system',
+          senderName: 'Arena System',
+          senderAvatar: '🚂',
+          text: `Ticket to Ride has started! Claim your routes and build your train empire.`,
           timestamp: Date.now(),
           isSystem: true,
         });
@@ -617,6 +634,78 @@ export function createArenaServer(options?: { isStandalone?: boolean }) {
     );
 
     socket.on(
+      'ticket-to-ride:action',
+      (data: { tableId: string; action: TTRAction; forUserId?: string }) => {
+        try {
+          console.log('[TTR] Received raw event:', data);
+          if (!data || !data.tableId || !data.action) {
+            console.log('[TTR] Rejected: missing data fields');
+            return;
+          }
+          const user = connectedUsers.get(socket.id);
+          const table = tables.get(data.tableId);
+          if (!table || !user || !table.ttrState) {
+            console.log('[TTR] Rejected: missing table, user, or ttrState', { hasTable: !!table, hasUser: !!user, hasTTRState: !!table?.ttrState });
+            return;
+          }
+          const isInitialDraft = table.ttrState.turnState.state === 'initial_draft';
+          if (table.status !== 'in-game' && !isInitialDraft) {
+            console.log('[TTR] Rejected: table status is', table.status, 'and not initial draft');
+            return;
+          }
+
+          // Host can submit on behalf of bots using forUserId
+          const actingUserId = (data.forUserId && table.hostId === user.id)
+            ? data.forUserId
+            : user.id;
+
+          console.log('[TTR] Processing action:', data.action.type, 'state:', table.ttrState.turnState.state, 'actingUser:', actingUserId, 'currentPlayer:', table.ttrState.playerOrder[table.ttrState.currentPlayerIndex]);
+          // Apply action using the engine
+          table.ttrState = processTTRAction(table.ttrState, actingUserId, data.action);
+
+          io.to(table.id).emit('table:ttr_sync', {
+            gameState: table.ttrState,
+          });
+
+          if (table.ttrState.winner && table.status !== 'finished') {
+            table.status = 'finished';
+            const winningPlayer = table.players.find(
+              (p) => p.userId === table.ttrState!.winner
+            );
+            table.winner = {
+              id: winningPlayer ? winningPlayer.userId : user.id,
+              name: winningPlayer ? winningPlayer.username : user.username,
+              avatar: winningPlayer ? winningPlayer.avatar : '🚂',
+              timeSeconds: Math.round(
+                (Date.now() - (table.gameStartTime || Date.now())) / 1000
+              ),
+              role: 'Railway Baron',
+            };
+
+            table.messages.push({
+              id: 'msg_' + Date.now(),
+              senderId: 'system',
+              senderName: 'Arena System',
+              senderAvatar: '🏆',
+              text: `Journey Complete! ${table.winner.name} has claimed victory across Europe!`,
+              timestamp: Date.now(),
+              isSystem: true,
+            });
+
+            io.to(table.id).emit('table:game_over', {
+              table,
+              winner: table.winner,
+            });
+            broadcastLobbyList();
+          }
+        } catch (err: any) {
+          console.error('Error handling ticket-to-ride:action:', err);
+          socket.emit('table:ttr_error', { message: err.message });
+        }
+      }
+    );
+
+    socket.on(
       'table:chat',
       (data: { tableId: string; text: string }) => {
         const user = connectedUsers.get(socket.id);
@@ -717,6 +806,8 @@ export function createArenaServer(options?: { isStandalone?: boolean }) {
             isBot: !!p.isBot,
           }));
           table.catanState = createInitialCatanGame(playerConfigs, vpTarget);
+        } else if (table.gameId === 'ticket-to-ride') {
+          table.ttrState = createInitialTTRGame(table.players.map((p) => p.userId));
         } else if (table.gameId === 'mr-jack') {
           table.mrJackState = createInitialMrJackGame();
         } else {
@@ -782,7 +873,7 @@ export function createArenaServer(options?: { isStandalone?: boolean }) {
         const user = connectedUsers.get(socket.id);
         const table = tables.get(data.tableId);
         if (!table || !user || table.hostId !== user.id) return;
-        const maxPlayers = table.maxPlayers || (table.gameId === 'catan' ? 4 : 2);
+        const maxPlayers = table.maxPlayers || (table.gameId === 'catan' ? 4 : table.gameId === 'ticket-to-ride' ? 5 : 2);
         if (table.players.length >= maxPlayers) return;
 
         const diff = data.difficulty || 'intermediate';

@@ -197,31 +197,43 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
           </div>
 
-          {/* Game 4: Pentago 360 */}
-          <div className="p-5 rounded-2xl border bg-slate-900/40 border-slate-800/80 flex flex-col justify-between opacity-80 hover:opacity-100 transition">
+          {/* Game 4: Ticket to Ride */}
+          <div 
+            onClick={() => {
+              sounds.playPop();
+              setSelectedGame('ticket-to-ride');
+              onOpenCreateTable('ticket-to-ride');
+            }}
+            className="p-5 rounded-2xl border bg-slate-900/60 border-slate-700 hover:border-amber-500 hover:bg-slate-800/80 hover:-translate-y-1 transition-all cursor-pointer shadow-sm group flex flex-col justify-between"
+          >
             <div className="flex items-start justify-between mb-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-600 flex items-center justify-center text-white shadow-md">
-                <RotateCw className="w-6 h-6" />
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-600 to-amber-400 flex items-center justify-center text-white shadow-md group-hover:scale-110 transition-transform">
+                <span className="text-2xl">🚂</span>
               </div>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-slate-800 text-slate-400 border border-slate-700">
-                Coming Soon
+              <span className="px-2.5 py-1 text-[10px] font-bold tracking-wider rounded bg-emerald-500/20 text-emerald-400">
+                ACTIVE & PLAYABLE
               </span>
             </div>
-
+            
             <div>
-              <h3 className="font-extrabold text-base text-slate-200 mb-1 font-['Fredoka']">
-                Pentago 360
+              <h3 className="font-extrabold text-base text-amber-500 mb-1 group-hover:text-amber-400 transition-colors font-['Fredoka']">
+                Ticket to Ride: Europe
               </h3>
               <p className="text-xs text-slate-400 leading-relaxed mb-3">
-                Place a marble and twist a quadrant 90°. Align five in a row to win!
+                Build your train empire across turn-of-the-century Europe! Claim routes and complete destination tickets.
               </p>
             </div>
-
-            <div className="flex items-center justify-between text-[11px] text-slate-500 pt-3 border-t border-slate-800/80">
-              <span>Mind Game</span>
-              <span>2 Players</span>
+            
+            <div className="flex items-center justify-between text-xs text-slate-500 font-medium pt-2 border-t border-slate-800">
+              <span className="flex items-center gap-1.5 text-amber-500/80">
+                <Users className="w-3.5 h-3.5" /> 2 - 5 Players / Solo
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5" /> ~25 mins
+              </span>
             </div>
           </div>
+
         </div>
       </section>
 
@@ -401,26 +413,26 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   </div>
 
                   {/* Players list */}
-                  <div className="bg-slate-950/60 rounded-xl p-2.5 my-2 flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2">
+                  <div className="bg-slate-950/60 rounded-xl p-2.5 my-2 flex items-center justify-between text-xs overflow-hidden">
+                    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pr-2">
                       {room.players.map((p) => (
                         <div
                           key={p.userId}
-                          className="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded-lg border border-slate-800"
+                          className="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded-lg border border-slate-800 shrink-0"
                         >
                           <span>{p.avatar}</span>
-                          <span className="font-semibold text-slate-200 truncate max-w-[80px]">
+                          <span className="font-semibold text-slate-200 truncate max-w-[120px]">
                             {p.username}
                           </span>
                         </div>
                       ))}
                       {room.players.length === 1 && (
-                        <div className="text-[11px] text-slate-500 italic">
+                        <div className="text-[11px] text-slate-500 italic shrink-0">
                           + Waiting for Player 2...
                         </div>
                       )}
                     </div>
-                    <div className="text-[10px] text-slate-400 font-mono">
+                    <div className="text-[10px] text-slate-400 font-mono shrink-0 pl-1">
                       {room.timeControl}
                     </div>
                   </div>

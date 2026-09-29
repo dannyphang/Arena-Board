@@ -13,6 +13,7 @@ import { CreateTableModal } from './components/CreateTableModal';
 import { GameArena } from './components/GeniusSquare/GameArena';
 import { MrJackArena } from './components/MrJack/MrJackArena';
 import { CatanArena } from './components/Catan/CatanArena';
+import { TicketToRideArena } from './components/TicketToRide/TicketToRideArena';
 import { AppVersionModal } from './components/AppVersionModal';
 import { APP_VERSION_INFO } from './config/version';
 
@@ -26,7 +27,7 @@ export default function App() {
 
   // Modals
   const [isRulesOpen, setIsRulesOpen] = useState(false);
-  const [rulesGameId, setRulesGameId] = useState<'genius-square' | 'mr-jack' | 'catan' | undefined>(undefined);
+  const [rulesGameId, setRulesGameId] = useState<'genius-square' | 'mr-jack' | 'catan' | 'ticket-to-ride' | undefined>(undefined);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isCreateTableOpen, setIsCreateTableOpen] = useState(false);
@@ -114,6 +115,17 @@ export default function App() {
       });
     };
 
+    const handleTTRSync = (data: { gameState: any }) => {
+      setActiveTable((prev) => {
+        if (!prev) return null;
+        return { ...prev, ttrState: data.gameState };
+      });
+    };
+
+    const handleTTRError = (data: { message: string }) => {
+      alert(`Ticket to Ride Error: ${data.message}`);
+    };
+
     socket.on('lobby:list', handleLobbyList);
     socket.on('table:created', handleTableCreated);
     socket.on('table:updated', handleTableUpdated);
@@ -122,6 +134,8 @@ export default function App() {
     socket.on('table:chat_message', handleChatMessage);
     socket.on('table:mrjack_sync', handleMrJackSync);
     socket.on('table:catan_sync', handleCatanSync);
+    socket.on('table:ttr_sync', handleTTRSync);
+    socket.on('table:ttr_error', handleTTRError);
 
     socket.emit('lobby:get');
 
@@ -134,6 +148,8 @@ export default function App() {
       socket.off('table:chat_message', handleChatMessage);
       socket.off('table:mrjack_sync', handleMrJackSync);
       socket.off('table:catan_sync', handleCatanSync);
+      socket.off('table:ttr_sync', handleTTRSync);
+      socket.off('table:ttr_error', handleTTRError);
     };
   }, [user, socket]);
 
@@ -299,6 +315,17 @@ export default function App() {
               }}
               onRecordMatch={handleRecordMatch}
             />
+          ) : activeTable?.gameId === 'ticket-to-ride' || (!activeTable && soloGameId === 'ticket-to-ride') ? (
+            <TicketToRideArena
+              user={user}
+              table={activeTable}
+              onExit={handleLeaveGame}
+              onOpenRules={() => {
+                setRulesGameId('ticket-to-ride');
+                setIsRulesOpen(true);
+              }}
+              onRecordMatch={handleRecordMatch}
+            />
           ) : activeTable?.gameId === 'mr-jack' || (!activeTable && soloGameId === 'mr-jack') ? (
             <MrJackArena
               user={user}
@@ -374,8 +401,6 @@ export default function App() {
             >
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               <span>App Version: <strong className="text-slate-200 group-hover:text-amber-300 font-bold">{APP_VERSION_INFO.version}</strong></span>
-              <span className="text-slate-600">•</span>
-              <span className="text-slate-400 group-hover:text-slate-200">Click to view prompt & version info &rarr;</span>
             </button>
           </div>
         </footer>

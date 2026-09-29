@@ -4,14 +4,32 @@ import { execSync } from 'child_process';
 
 const commitMsg = execSync('git log -1 --pretty=%B').toString().trim();
 
-// 1. Bump version in package.json
+// 1. Check if version was manually bumped
 const rootPackageJsonPath = path.resolve(import.meta.dirname, '../package.json');
 const rootPackage = JSON.parse(fs.readFileSync(rootPackageJsonPath, 'utf8'));
-const versionParts = rootPackage.version.split('.').map(Number);
-versionParts[2] += 1; // bump patch version
-const newVersion = versionParts.join('.');
-rootPackage.version = newVersion;
-fs.writeFileSync(rootPackageJsonPath, JSON.stringify(rootPackage, null, 2) + '\n');
+
+let previousVersion = rootPackage.version;
+try {
+  const oldPackageJson = execSync('git show HEAD~1:package.json 2>/dev/null').toString();
+  const oldPackage = JSON.parse(oldPackageJson);
+  previousVersion = oldPackage.version;
+} catch (e) {
+  // If HEAD~1 doesn't exist, we fall back to current version
+}
+
+let newVersion = rootPackage.version;
+if (newVersion === previousVersion) {
+  // Not manually updated, so auto bump patch version
+  const versionParts = newVersion.split('.').map(Number);
+  versionParts[2] += 1;
+  newVersion = versionParts.join('.');
+  
+  rootPackage.version = newVersion;
+  fs.writeFileSync(rootPackageJsonPath, JSON.stringify(rootPackage, null, 2) + '\n');
+} else {
+  console.log(`Version was manually updated from ${previousVersion} to ${newVersion}. Skipping auto-bump.`);
+}
+
 
 // 2. Bump version in server/package.json if exists
 const serverPackageJsonPath = path.resolve(import.meta.dirname, '../server/package.json');

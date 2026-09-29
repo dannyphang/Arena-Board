@@ -14,14 +14,22 @@ export interface AppVersionInfo {
 }
 
 export const APP_VERSION_INFO: AppVersionInfo = {
-  version: 'v1.4.5',
-  releaseDate: '2026-09-29 12:34 UTC',
-  buildId: 'bld-20260929123408-v145',
+  version: 'v1.5.1',
+  releaseDate: '2026-09-29 17:07 UTC',
+  buildId: 'bld-20260929170727-v151',
   environment: typeof window !== 'undefined' ? window.location.hostname : 'production',
   latestPrompt: "Add README, package-lock, and auto-version hook",
   promptDescription:
     "Add README, package-lock, and auto-version hook",
   changeLog: [
+    {
+      version: 'v1.5.1',
+      date: '2026-09-29',
+      prompt: "feat(ttr): Ticket to Ride - Full drafting, map highlights, player states, and tooltip UI improvements",
+      highlights: [
+        "feat(ttr): Ticket to Ride - Full drafting, map highlights, player states, and tooltip UI improvements\n\n- Implemented full drafting phase for destination tickets with validation.\n- Added map highlights for destination tickets (hover over ticket to light up route).\n- Fixed bot action handling to act as bots correctly during normal turns.\n- Fixed server room state sticking to 'waiting' for solo games.\n- Added native map tooltips to show how many cards a route requires.\n- Added full Player summary UI to the right panel showing score, remaining cars, and card counts.\n- Updated auto-versioning hook to respect manual version bumps in package.json."
+      ],
+    },
     {
       version: 'v1.4.5',
       date: '2026-09-29',

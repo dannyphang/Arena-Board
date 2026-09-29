@@ -102,7 +102,7 @@ export const CreateTableModal: React.FC<CreateTableModalProps> = ({
   // Catan (and empty initial selection): up to 4 players total (1 host + 3 opponents)
   // Genius Square & Mr. Jack: strictly 2 players total (1 host + 1 opponent)
   const isTwoPlayerOnly = gameId === 'genius-square' || gameId === 'mr-jack';
-  const maxTotalPlayers = isTwoPlayerOnly ? 2 : 4;
+  const maxTotalPlayers = gameId === 'ticket-to-ride' ? 5 : isTwoPlayerOnly ? 2 : 4;
   const maxOpponents = maxTotalPlayers - 1;
 
   // Trim opponents if game changes to one with lower player limit
@@ -172,7 +172,7 @@ export const CreateTableModal: React.FC<CreateTableModalProps> = ({
     // 2. Prepare opponents configuration
     const botOpponents = opponents.filter((o) => o.type === 'bot');
     const humanOpponents = opponents.filter((o) => o.type === 'human');
-    const calculatedMaxPlayers = gameId === 'catan' ? 4 : (opponents.length + 1);
+    const calculatedMaxPlayers = gameId === 'catan' ? 4 : gameId === 'ticket-to-ride' ? 5 : (opponents.length + 1);
 
     const defaultName =
       tableName.trim() ||
@@ -274,6 +274,9 @@ export const CreateTableModal: React.FC<CreateTableModalProps> = ({
                   </option>
                   <option value="catan" className="text-slate-100 bg-slate-900">
                     The Settlers of Catan (2 - 4 Players / Solo)
+                  </option>
+                  <option value="ticket-to-ride" className="text-slate-100 bg-slate-900">
+                    Ticket to Ride: Europe (2 - 5 Players / Solo)
                   </option>
                   <option value="quoridor" disabled className="text-slate-500 bg-slate-900">
                     Quoridor Arena (Coming Soon)

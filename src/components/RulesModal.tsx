@@ -36,8 +36,8 @@ import {
 interface RulesModalProps {
   isOpen: boolean;
   onClose: () => void;
-  defaultGame?: 'genius-square' | 'mr-jack' | 'catan';
-  currentGame?: 'genius-square' | 'mr-jack' | 'catan';
+  defaultGame?: 'genius-square' | 'mr-jack' | 'catan' | 'ticket-to-ride';
+  currentGame?: 'genius-square' | 'mr-jack' | 'catan' | 'ticket-to-ride';
 }
 
 export const RulesModal: React.FC<RulesModalProps> = ({
@@ -47,7 +47,7 @@ export const RulesModal: React.FC<RulesModalProps> = ({
   currentGame,
 }) => {
   const effectiveGame = currentGame || defaultGame;
-  const [activeGame, setActiveGame] = useState<'genius-square' | 'mr-jack' | 'catan'>(effectiveGame);
+  const [activeGame, setActiveGame] = useState<'genius-square' | 'mr-jack' | 'catan' | 'ticket-to-ride'>(effectiveGame);
 
   useEffect(() => {
     if (currentGame) {
