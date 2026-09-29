@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: arenaboard-backend
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm install && npm run build:server
+    startCommand: npm run start:server
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: CLIENT_ORIGIN
+        value: '*' # Replace with your Vercel URL, e.g. https://your-app.vercel.app
+      - key: STANDALONE_SERVER
+        value: 'true'

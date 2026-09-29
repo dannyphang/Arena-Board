@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { APP_VERSION_INFO } from '../config/version';
 import { sounds } from '../services/audio';
+import { getBackendUrl } from '../services/socket';
 import {
   Info,
   CheckCircle2,
@@ -58,7 +59,8 @@ export const VersionInfoModal: React.FC<VersionInfoModalProps> = ({
     setChecking(true);
     setCheckError(null);
     try {
-      const res = await fetch('/api/version');
+      const backendUrl = getBackendUrl();
+      const res = await fetch(`${backendUrl}/api/version`);
       if (res.ok) {
         const data = await res.json();
         setServerVersion(data);

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { APP_VERSION_INFO } from '../config/version';
 import { sounds } from '../services/audio';
+import { getBackendUrl } from '../services/socket';
 
 interface AppVersionModalProps {
   isOpen: boolean;
@@ -37,7 +38,8 @@ export function AppVersionModal({ isOpen, onClose }: AppVersionModalProps) {
   const checkFreshness = async () => {
     setIsChecking(true);
     try {
-      const res = await fetch('/api/version');
+      const backendUrl = getBackendUrl();
+      const res = await fetch(`${backendUrl}/api/version`);
       if (res.ok) {
         const data = await res.json();
         setServerStatus({
