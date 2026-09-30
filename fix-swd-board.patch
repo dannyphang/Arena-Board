@@ -1,0 +1,75 @@
+--- src/components/SevenWondersDuel/SWDBoard.tsx
++++ src/components/SevenWondersDuel/SWDBoard.tsx
+@@ -63,10 +63,10 @@
+           if (tok.isTaken) return null;
+           // Config for placement alongside military track
+           const posMap: Record<number, { top: string; left: string; width: string; height: string; img: string }> = {
+-            '-6': { top: '16.5%', left: '7%', width: '38px', height: '86px', img: SWD_BOARD_IMAGES.loot5 },
+-            '-3': { top: '30.5%', left: '8%', width: '32px', height: '74px', img: SWD_BOARD_IMAGES.loot2 },
+-            '3': { top: '61.2%', left: '8%', width: '32px', height: '74px', img: SWD_BOARD_IMAGES.loot2 },
+-            '6': { top: '75.2%', left: '7%', width: '38px', height: '86px', img: SWD_BOARD_IMAGES.loot5 },
++            '-6': { top: '26.5%', left: '9%', width: '38px', height: '86px', img: SWD_BOARD_IMAGES.loot5 },
++            '-3': { top: '38.5%', left: '10%', width: '32px', height: '74px', img: SWD_BOARD_IMAGES.loot2 },
++            '3': { top: '61.5%', left: '10%', width: '32px', height: '74px', img: SWD_BOARD_IMAGES.loot2 },
++            '6': { top: '73.5%', left: '9%', width: '38px', height: '86px', img: SWD_BOARD_IMAGES.loot5 },
+           };
+           const cfg = posMap[tok.position];
+           if (!cfg) return null;
+@@ -81,6 +81,7 @@
+                 left: cfg.left,
+                 width: cfg.width,
+                 height: cfg.height,
++                transform: 'translateY(-50%)',
+               }}
+             >
+               <img
+@@ -111,28 +112,24 @@
+         </div>
+ 
+         {/* 5 Board Progress Tokens in the right-column slots */}
+-        <div
+-          className="absolute flex flex-col items-center justify-between z-15"
+-          style={{
+-            top: '23%',
+-            bottom: '19%',
+-            left: '61%',
+-            width: '60px',
+-          }}
+-        >
+-          {state.boardProgressTokens.map((tokenId) => {
+-            const isSelectable = selectableTokens?.includes(tokenId);
+-            return (
+-              <div key={tokenId} className="relative group my-auto">
+-                <SWDCard
+-                  tokenId={tokenId}
+-                  size="small"
+-                  isAvailable={isSelectable}
+-                  onClick={() => onSelectToken?.(tokenId)}
+-                />
+-              </div>
+-            );
+-          })}
+-        </div>
++        {state.boardProgressTokens.map((tokenId, index) => {
++          const isSelectable = selectableTokens?.includes(tokenId);
++          const tokenTopCenters = ['26.5%', '38.5%', '50%', '61.5%', '73.5%'];
++          return (
++            <div
++              key={tokenId}
++              className="absolute z-15"
++              style={{
++                top: tokenTopCenters[index],
++                left: '73%',
++                transform: 'translate(-50%, -50%)',
++              }}
++            >
++              <SWDCard
++                tokenId={tokenId}
++                size="small"
++                isAvailable={isSelectable}
++                onClick={() => onSelectToken?.(tokenId)}
++              />
++            </div>
++          );
++        })}
+       </div>

@@ -1,0 +1,19 @@
+--- src/components/SevenWondersDuel/SWDCard.tsx
++++ src/components/SevenWondersDuel/SWDCard.tsx
+@@ -156,6 +156,8 @@
+   };
+ 
+   return (
++    <div className="relative group">
++    {/* Card itself */}
+     <div
+       onClick={isAvailable ? onClick : undefined}
+       title={
+@@ -191,6 +193,8 @@
+         <div className="absolute inset-0 bg-amber-400/10 pointer-events-none animate-pulse" />
+       )}
+     </div>
++    {/* Tooltip */}
++    </div>
+   );
+ };

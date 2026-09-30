@@ -1,6 +1,6 @@
 {
   "name": "arena-board-backend",
-  "version": "1.5.2",
+  "version": "1.6.1",
   "private": true,
   "type": "module",
   "description": "ArenaBoard backend & real-time WebSocket server",

@@ -37,7 +37,7 @@ export const SWDDraftpool: React.FC<SWDDraftpoolProps> = ({
     .sort((a, b) => a - b);
 
   return (
-    <div className="flex flex-col items-center justify-center p-3 select-none w-full max-w-2xl mx-auto overflow-x-auto">
+    <div className="flex flex-col items-center justify-center p-3 select-none w-full max-w-2xl mx-auto overflow-visible">
       {/* Draftpool Container with staggered vertical row overlaps */}
       <div className="flex flex-col items-center">
         {rowIndices.map((rowIndex) => {
@@ -48,9 +48,7 @@ export const SWDDraftpool: React.FC<SWDDraftpoolProps> = ({
               key={rowIndex}
               className="flex justify-center items-center relative"
               style={{
-                // Staggered overlap: every row after the first overlaps the previous row
                 marginTop: rowIndex === 0 ? '0px' : '-44px',
-                zIndex: rowIndex + 1, // Lower rows sit on top of higher rows
               }}
             >
               <div className="flex gap-2 sm:gap-3">
@@ -71,7 +69,7 @@ export const SWDDraftpool: React.FC<SWDDraftpoolProps> = ({
                   return (
                     <div
                       key={card.id}
-                      className="transition-transform duration-200"
+                      className="relative transition-transform duration-200"
                     >
                       <SWDCard
                         cardId={card.id}

@@ -1,0 +1,89 @@
+--- src/components/SevenWondersDuel/SWDCard.tsx
++++ src/components/SevenWondersDuel/SWDCard.tsx
+@@ -58,7 +58,7 @@
+     }[size];
+ 
+     return (
+-      <div
++      <div className="relative group/card flex items-center justify-center">
++        <div
+         onClick={onClick}
+         title={showTooltip ? `${t.name}: ${t.description}` : undefined}
+         className={`relative rounded-full shadow-lg transition-all select-none overflow-hidden ${
+@@ -73,6 +73,23 @@
+           loading="lazy"
+         />
+       </div>
++      {/* Token Tooltip */}
++      {showTooltip && (
++        <div className="absolute bottom-[calc(100%+0.5rem)] left-1/2 -translate-x-1/2 w-48 p-3 rounded-xl bg-slate-950/95 backdrop-blur-sm border border-slate-700 shadow-[0_0_30px_rgba(0,0,0,0.8)] opacity-0 group-hover/card:opacity-100 pointer-events-none transition-opacity duration-200 z-[100] flex flex-col gap-2">
++          {imgUrl && (
++            <div className="w-20 h-20 mx-auto rounded-full overflow-hidden border border-slate-800 shadow-inner">
++              <img src={imgUrl} alt={t.name} className="w-full h-full object-contain bg-amber-950/40" loading="lazy" />
++            </div>
++          )}
++          <div className="text-center font-extrabold text-slate-100 text-sm font-['Fredoka']">{t.name}</div>
++          <div className="text-center text-xs text-emerald-300 font-medium">
++            {t.description}
++          </div>
++        </div>
++      )}
++      </div>
+     );
+   }
+ 
+@@ -89,7 +106,7 @@
+     }[size];
+ 
+     return (
+-      <div
++      <div className="relative group/card flex items-center justify-center">
++        <div
+         onClick={onClick}
+         title={showTooltip ? `${w.name} (VP: ${w.victoryPoints})` : undefined}
+         className={`relative rounded-xl border border-amber-800/80 shadow-xl transition-all select-none overflow-hidden bg-slate-900 ${
+@@ -109,6 +126,45 @@
+           </span>
+         </div>
+       </div>
++      {/* Wonder Tooltip */}
++      {showTooltip && isFaceUp && (
++        <div className="absolute bottom-[calc(100%+0.5rem)] left-1/2 -translate-x-1/2 w-64 p-3 rounded-xl bg-slate-950/95 backdrop-blur-sm border border-slate-700 shadow-[0_0_30px_rgba(0,0,0,0.8)] opacity-0 group-hover/card:opacity-100 pointer-events-none transition-opacity duration-200 z-[100] flex flex-col gap-2">
++          {imgUrl && (
++            <div className="w-full aspect-[5/3] rounded-lg overflow-hidden border border-slate-800 shadow-inner">
++              <img src={imgUrl} alt={w.name} className="w-full h-full object-cover" loading="lazy" />
++            </div>
++          )}
++          <div className="text-center font-extrabold text-slate-100 text-sm font-['Fredoka']">{w.name}</div>
++          
++          <div className="space-y-1.5 text-xs">
++            {/* Cost */}
++            <div className="flex flex-wrap items-center justify-center gap-1">
++              <span className="text-[10px] uppercase font-bold text-slate-500">Cost:</span>
++              {(!w.cost || Object.keys(w.cost).length === 0) ? (
++                <span className="text-[10px] font-bold text-slate-400">Free</span>
++              ) : (
++                <>
++                  {w.cost?.wood ? <span className="px-1 py-0.5 rounded bg-amber-950/80 text-amber-200 border border-amber-800/60 text-[10px] font-bold">🪵 {w.cost.wood}</span> : null}
++                  {w.cost?.clay ? <span className="px-1 py-0.5 rounded bg-orange-950/80 text-orange-200 border border-orange-800/60 text-[10px] font-bold">🧱 {w.cost.clay}</span> : null}
++                  {w.cost?.stone ? <span className="px-1 py-0.5 rounded bg-stone-800 text-stone-200 border border-stone-600/60 text-[10px] font-bold">🪨 {w.cost.stone}</span> : null}
++                  {w.cost?.glass ? <span className="px-1 py-0.5 rounded bg-cyan-950/80 text-cyan-200 border border-cyan-800/60 text-[10px] font-bold">🧪 {w.cost.glass}</span> : null}
++                  {w.cost?.papyrus ? <span className="px-1 py-0.5 rounded bg-yellow-950/80 text-yellow-200 border border-yellow-800/60 text-[10px] font-bold">📜 {w.cost.papyrus}</span> : null}
++                </>
++              )}
++            </div>
++
++            {/* Reward */}
++            <div className="flex flex-wrap items-center justify-center gap-1 pt-1 border-t border-slate-800">
++              <span className="text-[10px] uppercase font-bold text-slate-500">Reward:</span>
++              {w.victoryPoints ? <span className="text-amber-300 font-bold px-1 text-[10px]">🏆 +{w.victoryPoints} VP</span> : null}
++              {w.military ? <span className="text-rose-400 font-bold px-1 text-[10px]">🛡️ +{w.military}</span> : null}
++              {w.coins ? <span className="text-amber-400 font-bold px-1 text-[10px]">🪙 +{w.coins}</span> : null}
++              {w.extraTurn && <span className="text-amber-300 font-bold px-1 text-[10px]">⚡ Play Again</span>}
++            </div>
++          </div>
++        </div>
++      )}
++      </div>
+     );
+   }

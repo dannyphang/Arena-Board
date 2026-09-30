@@ -2104,6 +2104,7 @@ var CITIES = {
   SOFIA: "Sofia",
   STOCKHOLM: "Stockholm",
   VENEZIA: "Venezia",
+  WARSZAWA: "Warszawa",
   WIEN: "Wien",
   ZAGREB: "Zagreb",
   ZURICH: "Z\xFCrich"
@@ -2201,7 +2202,6 @@ var INITIAL_ROUTES = {
   "constantinople-sevastopol": { id: "constantinople-sevastopol", city1: CITIES.CONSTANTINOPLE, city2: CITIES.SEVASTOPOL, length: 4, color: "any", locomotivesRequired: 2 },
   // Ferry
   "smyrna-angora": { id: "smyrna-angora", city1: CITIES.SMYRNA, city2: CITIES.ANGORA, length: 3, color: "orange", isTunnel: true },
-  "smyrna-erzurum": { id: "smyrna-erzurum", city1: CITIES.SMYRNA, city2: CITIES.ERZURUM, length: 5, color: "any", isTunnel: true },
   "angora-erzurum": { id: "angora-erzurum", city1: CITIES.ANGORA, city2: CITIES.ERZURUM, length: 3, color: "black" },
   "erzurum-sevastopol": { id: "erzurum-sevastopol", city1: CITIES.ERZURUM, city2: CITIES.SEVASTOPOL, length: 4, color: "any", locomotivesRequired: 2 },
   // Ferry
@@ -2312,11 +2312,18 @@ function generateTrainDeck() {
 function createInitialTTRGame(playerIds) {
   const trainDeck = generateTrainDeck();
   const faceUpTrainCards = trainDeck.splice(0, 5);
-  const destinationDeck = shuffle2([...INITIAL_DESTINATIONS]);
+  const longRoutes = shuffle2(INITIAL_DESTINATIONS.slice(0, 6));
+  const regularRoutes = shuffle2(INITIAL_DESTINATIONS.slice(6));
   const players = {};
   const colors = ["#e11d48", "#2563eb", "#16a34a", "#eab308", "#000000"];
   playerIds.forEach((userId, index) => {
     const hand = trainDeck.splice(0, 4);
+    const dealtTickets = [
+      longRoutes.pop(),
+      regularRoutes.pop(),
+      regularRoutes.pop(),
+      regularRoutes.pop()
+    ];
     players[userId] = {
       userId,
       color: colors[index % colors.length],
@@ -2324,10 +2331,12 @@ function createInitialTTRGame(playerIds) {
       stationsRemaining: 3,
       trainCards: hand,
       destinationTickets: [],
+      pendingDestinations: dealtTickets,
       score: 0,
       longestRouteLength: 0
     };
   });
+  const destinationDeck = shuffle2([...longRoutes, ...regularRoutes]);
   return {
     players,
     playerOrder: playerIds,
@@ -2339,9 +2348,10 @@ function createInitialTTRGame(playerIds) {
     faceUpTrainCards,
     destinationDeck,
     turnState: {
-      state: "start_turn"
+      state: "initial_draft"
     },
-    history: ["Game started."]
+    setupFinishedBy: [],
+    history: ["Game started. Please select your initial destination tickets."]
   };
 }
 function nextTurn(state) {
@@ -2363,8 +2373,12 @@ function refillFaceUpCards(state) {
 }
 function processTTRAction(state, userId, action) {
   const currentPlayerId = state.playerOrder[state.currentPlayerIndex];
-  if (userId !== currentPlayerId) {
+  const isDraftAction = state.turnState.state === "initial_draft" && action.type === "KEEP_DESTINATIONS";
+  if (!isDraftAction && userId !== currentPlayerId) {
     throw new Error("Not your turn");
+  }
+  if (!state.players[userId]) {
+    throw new Error("Player not in this game");
   }
   const newState = JSON.parse(JSON.stringify(state));
   const player = newState.players[userId];
@@ -2433,8 +2447,2728 @@ function processTTRAction(state, userId, action) {
       nextTurn(newState);
       break;
     }
+    case "DRAW_DESTINATIONS": {
+      if (newState.turnState.state !== "start_turn") {
+        throw new Error("Can only draw tickets at the start of your turn");
+      }
+      if (newState.destinationDeck.length === 0) {
+        throw new Error("No destination tickets left");
+      }
+      const drawCount = Math.min(3, newState.destinationDeck.length);
+      const drawnTickets = newState.destinationDeck.splice(0, drawCount);
+      player.pendingDestinations = drawnTickets;
+      newState.history.push(`${userId} drew ${drawCount} destination tickets to choose from.`);
+      newState.turnState.state = "choosing_destinations";
+      break;
+    }
+    case "KEEP_DESTINATIONS": {
+      if (!player.pendingDestinations) {
+        throw new Error("You have no pending destination tickets");
+      }
+      const isInitialDraft = newState.turnState.state === "initial_draft";
+      const isChoosing = newState.turnState.state === "choosing_destinations";
+      if (!isInitialDraft && !isChoosing) {
+        throw new Error("Not currently choosing destinations");
+      }
+      const minKept = isInitialDraft ? 2 : 1;
+      if (action.keptIds.length < minKept) {
+        throw new Error(`Must keep at least ${minKept} ticket(s)`);
+      }
+      const kept = player.pendingDestinations.filter((t) => action.keptIds.includes(t.id));
+      const discarded = player.pendingDestinations.filter((t) => !action.keptIds.includes(t.id));
+      if (kept.length !== action.keptIds.length) {
+        throw new Error("Invalid ticket IDs provided");
+      }
+      player.destinationTickets.push(...kept);
+      newState.destinationDeck.push(...discarded);
+      player.pendingDestinations = void 0;
+      if (isInitialDraft) {
+        newState.setupFinishedBy.push(userId);
+        newState.history.push(`${userId} kept ${kept.length} initial tickets.`);
+        if (newState.setupFinishedBy.length === newState.playerOrder.length) {
+          newState.turnState.state = "start_turn";
+          newState.history.push("All players finished draft. Game begins!");
+        }
+      } else {
+        newState.history.push(`${userId} kept ${kept.length} tickets.`);
+        nextTurn(newState);
+      }
+      break;
+    }
+    default:
+      throw new Error(`Unknown action type: ${action.type}`);
   }
   return newState;
+}
+
+// src/games/seven-wonders-duel/constants.ts
+var WONDERS = {
+  1: {
+    id: 1,
+    name: "The Pyramids",
+    cost: { papyrus: 1, stone: 3 },
+    victoryPoints: 9
+  },
+  2: {
+    id: 2,
+    name: "The Colossus",
+    cost: { glass: 1, clay: 3 },
+    military: 2,
+    victoryPoints: 3
+  },
+  3: {
+    id: 3,
+    name: "The Great Lighthouse",
+    cost: { papyrus: 2, stone: 1, wood: 1 },
+    resourceChoice: ["wood", "stone", "clay"],
+    victoryPoints: 4
+  },
+  4: {
+    id: 4,
+    name: "The Temple of Artemis",
+    cost: { papyrus: 1, glass: 1, stone: 1, wood: 1 },
+    coins: 12,
+    extraTurn: true,
+    victoryPoints: 0
+  },
+  5: {
+    id: 5,
+    name: "The Mausoleum",
+    cost: { papyrus: 1, glass: 2, clay: 2 },
+    discardBuildingTake: true,
+    victoryPoints: 2
+  },
+  6: {
+    id: 6,
+    name: "The Great Library",
+    cost: { papyrus: 1, glass: 1, wood: 3 },
+    progressTokenFromBox: true,
+    victoryPoints: 4
+  },
+  7: {
+    id: 7,
+    name: "Piraeus",
+    cost: { clay: 1, stone: 1, wood: 2 },
+    resourceChoice: ["papyrus", "glass"],
+    extraTurn: true,
+    victoryPoints: 2
+  },
+  8: {
+    id: 8,
+    name: "The Hanging Gardens",
+    cost: { papyrus: 1, glass: 1, wood: 2 },
+    coins: 6,
+    extraTurn: true,
+    victoryPoints: 3
+  },
+  9: {
+    id: 9,
+    name: "The Statue of Zeus",
+    cost: { papyrus: 2, clay: 1, wood: 1, stone: 1 },
+    destroyOpponentBrown: true,
+    military: 1,
+    victoryPoints: 3
+  },
+  10: {
+    id: 10,
+    name: "The Sphinx",
+    cost: { glass: 2, clay: 1, stone: 1 },
+    extraTurn: true,
+    victoryPoints: 6
+  },
+  11: {
+    id: 11,
+    name: "The Appian Way",
+    cost: { papyrus: 1, clay: 2, stone: 2 },
+    coins: 3,
+    opponentCoinLoss: 3,
+    extraTurn: true,
+    victoryPoints: 3
+  },
+  12: {
+    id: 12,
+    name: "Circus Maximus",
+    cost: { glass: 1, wood: 1, stone: 2 },
+    destroyOpponentGrey: true,
+    military: 1,
+    victoryPoints: 3
+  }
+};
+var PROGRESS_TOKENS = {
+  1: {
+    id: 1,
+    name: "Agriculture",
+    coins: 6,
+    victoryPoints: 4,
+    description: "Immediately gain 6 coins. Worth 4 victory points at the end of the game."
+  },
+  2: {
+    id: 2,
+    name: "Architecture",
+    description: "Future Wonders constructed by you cost 2 fewer resources of your choice."
+  },
+  3: {
+    id: 3,
+    name: "Economy",
+    description: "You gain the coins spent by your opponent when they trade for resources with the bank."
+  },
+  4: {
+    id: 4,
+    name: "Law",
+    scientificSymbol: 2,
+    description: "Grants a scientific symbol (Scales), counting towards Scientific Supremacy."
+  },
+  5: {
+    id: 5,
+    name: "Masonry",
+    description: "Future blue (Civilian) buildings constructed by you cost 2 fewer resources."
+  },
+  6: {
+    id: 6,
+    name: "Mathematics",
+    description: "At the end of the game, score 3 victory points for each Progress Token you possess (including this one)."
+  },
+  7: {
+    id: 7,
+    name: "Philosophy",
+    victoryPoints: 7,
+    description: "Worth 7 victory points at the end of the game."
+  },
+  8: {
+    id: 8,
+    name: "Strategy",
+    description: "New Military Buildings (red cards) you construct benefit from +1 extra Shield."
+  },
+  9: {
+    id: 9,
+    name: "Theology",
+    description: "All future Wonders constructed by you gain the Play Again (extra turn) effect."
+  },
+  10: {
+    id: 10,
+    name: "Urbanism",
+    coins: 6,
+    description: "Gain 6 coins immediately. Each time you construct a building for free through linking, gain 4 coins."
+  }
+};
+var BUILDINGS = {
+  "1": {
+    "id": 1,
+    "age": 1,
+    "name": "Lumber Yard",
+    "type": "brown",
+    "cost": {},
+    "resources": {
+      "wood": 1
+    },
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null
+  },
+  "2": {
+    "id": 2,
+    "age": 1,
+    "name": "Stone Pit",
+    "type": "brown",
+    "cost": {
+      "coins": 1
+    },
+    "resources": {
+      "stone": 1
+    },
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null
+  },
+  "3": {
+    "id": 3,
+    "age": 1,
+    "name": "Clay Pool",
+    "type": "brown",
+    "cost": {},
+    "resources": {
+      "clay": 1
+    },
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null
+  },
+  "4": {
+    "id": 4,
+    "age": 1,
+    "name": "Logging Camp",
+    "type": "brown",
+    "cost": {
+      "coins": 1
+    },
+    "resources": {
+      "wood": 1
+    },
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null
+  },
+  "5": {
+    "id": 5,
+    "age": 1,
+    "name": "Quarry",
+    "type": "brown",
+    "cost": {},
+    "resources": {
+      "stone": 1
+    },
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null
+  },
+  "6": {
+    "id": 6,
+    "age": 1,
+    "name": "Clay Pit",
+    "type": "brown",
+    "cost": {
+      "coins": 1
+    },
+    "resources": {
+      "clay": 1
+    },
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null
+  },
+  "7": {
+    "id": 7,
+    "age": 1,
+    "name": "Glassworks",
+    "type": "grey",
+    "cost": {
+      "coins": 1
+    },
+    "resources": {
+      "glass": 1
+    },
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null
+  },
+  "8": {
+    "id": 8,
+    "age": 1,
+    "name": "Press",
+    "type": "grey",
+    "cost": {
+      "coins": 1
+    },
+    "resources": {
+      "papyrus": 1
+    },
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null
+  },
+  "9": {
+    "id": 9,
+    "age": 1,
+    "name": "Stable",
+    "type": "red",
+    "cost": {
+      "wood": 1
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 1,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null,
+    "providesFreeFor": [
+      29
+    ]
+  },
+  "10": {
+    "id": 10,
+    "age": 1,
+    "name": "Garrison",
+    "type": "red",
+    "cost": {
+      "clay": 1
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 1,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null,
+    "providesFreeFor": [
+      30
+    ]
+  },
+  "11": {
+    "id": 11,
+    "age": 1,
+    "name": "Palisade",
+    "type": "red",
+    "cost": {
+      "coins": 2
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 1,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null,
+    "providesFreeFor": [
+      50
+    ]
+  },
+  "12": {
+    "id": 12,
+    "age": 1,
+    "name": "Guard Tower",
+    "type": "red",
+    "cost": {},
+    "resources": {},
+    "resourceChoice": [],
+    "military": 1,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null
+  },
+  "13": {
+    "id": 13,
+    "age": 1,
+    "name": "Scriptorium",
+    "type": "green",
+    "cost": {
+      "coins": 2
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": 6,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null,
+    "providesFreeFor": [
+      37
+    ]
+  },
+  "14": {
+    "id": 14,
+    "age": 1,
+    "name": "Workshop",
+    "type": "green",
+    "cost": {
+      "papyrus": 1
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 1,
+    "coins": 0,
+    "scientificSymbol": 5,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null
+  },
+  "15": {
+    "id": 15,
+    "age": 1,
+    "name": "Pharmacist",
+    "type": "green",
+    "cost": {
+      "coins": 2
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": 4,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null,
+    "providesFreeFor": [
+      36
+    ]
+  },
+  "16": {
+    "id": 16,
+    "age": 1,
+    "name": "Apothecary",
+    "type": "green",
+    "cost": {
+      "glass": 1
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 1,
+    "coins": 0,
+    "scientificSymbol": 7,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null
+  },
+  "17": {
+    "id": 17,
+    "age": 1,
+    "name": "Tavern",
+    "type": "yellow",
+    "cost": {},
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 0,
+    "coins": 4,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null,
+    "providesFreeFor": [
+      59
+    ]
+  },
+  "18": {
+    "id": 18,
+    "age": 1,
+    "name": "Stone Reserve",
+    "type": "yellow",
+    "cost": {
+      "coins": 3
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [
+      "stone"
+    ],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null
+  },
+  "19": {
+    "id": 19,
+    "age": 1,
+    "name": "Clay Reserve",
+    "type": "yellow",
+    "cost": {
+      "coins": 3
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [
+      "clay"
+    ],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null
+  },
+  "20": {
+    "id": 20,
+    "age": 1,
+    "name": "Wood Reserve",
+    "type": "yellow",
+    "cost": {
+      "coins": 3
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [
+      "wood"
+    ],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null
+  },
+  "21": {
+    "id": 21,
+    "age": 1,
+    "name": "Theater",
+    "type": "blue",
+    "cost": {},
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 3,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null,
+    "providesFreeFor": [
+      43
+    ]
+  },
+  "22": {
+    "id": 22,
+    "age": 1,
+    "name": "Altar",
+    "type": "blue",
+    "cost": {},
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 3,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null,
+    "providesFreeFor": [
+      42
+    ]
+  },
+  "23": {
+    "id": 23,
+    "age": 1,
+    "name": "Baths",
+    "type": "blue",
+    "cost": {
+      "stone": 1
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 3,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null,
+    "providesFreeFor": [
+      45
+    ]
+  },
+  "24": {
+    "id": 24,
+    "age": 2,
+    "name": "Sawmill",
+    "type": "brown",
+    "cost": {
+      "coins": 2
+    },
+    "resources": {
+      "wood": 2
+    },
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null
+  },
+  "25": {
+    "id": 25,
+    "age": 2,
+    "name": "Shelf Quarry",
+    "type": "brown",
+    "cost": {
+      "coins": 2
+    },
+    "resources": {
+      "stone": 2
+    },
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null
+  },
+  "26": {
+    "id": 26,
+    "age": 2,
+    "name": "Brickyard",
+    "type": "brown",
+    "cost": {
+      "coins": 2
+    },
+    "resources": {
+      "clay": 2
+    },
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null
+  },
+  "27": {
+    "id": 27,
+    "age": 2,
+    "name": "Glass-Blower",
+    "type": "grey",
+    "cost": {},
+    "resources": {
+      "glass": 1
+    },
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null
+  },
+  "28": {
+    "id": 28,
+    "age": 2,
+    "name": "Drying Room",
+    "type": "grey",
+    "cost": {},
+    "resources": {
+      "papyrus": 1
+    },
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null
+  },
+  "29": {
+    "id": 29,
+    "age": 2,
+    "name": "Horse Breeders",
+    "type": "red",
+    "cost": {
+      "clay": 1,
+      "wood": 1
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 1,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null,
+    "freeIfHas": 9
+  },
+  "30": {
+    "id": 30,
+    "age": 2,
+    "name": "Barracks",
+    "type": "red",
+    "cost": {
+      "coins": 3
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 1,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null,
+    "freeIfHas": 10
+  },
+  "31": {
+    "id": 31,
+    "age": 2,
+    "name": "Walls",
+    "type": "red",
+    "cost": {
+      "stone": 2
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 2,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null
+  },
+  "32": {
+    "id": 32,
+    "age": 2,
+    "name": "Archery Range",
+    "type": "red",
+    "cost": {
+      "stone": 1,
+      "wood": 1,
+      "papyrus": 1
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 2,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null,
+    "providesFreeFor": [
+      49
+    ]
+  },
+  "33": {
+    "id": 33,
+    "age": 2,
+    "name": "Parade Ground",
+    "type": "red",
+    "cost": {
+      "clay": 2,
+      "glass": 1
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 2,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null,
+    "providesFreeFor": [
+      47
+    ]
+  },
+  "34": {
+    "id": 34,
+    "age": 2,
+    "name": "School",
+    "type": "green",
+    "cost": {
+      "wood": 1,
+      "papyrus": 2
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 1,
+    "coins": 0,
+    "scientificSymbol": 7,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null,
+    "providesFreeFor": [
+      53
+    ]
+  },
+  "35": {
+    "id": 35,
+    "age": 2,
+    "name": "Laboratory",
+    "type": "green",
+    "cost": {
+      "wood": 1,
+      "glass": 2
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 1,
+    "coins": 0,
+    "scientificSymbol": 5,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null,
+    "providesFreeFor": [
+      55
+    ]
+  },
+  "36": {
+    "id": 36,
+    "age": 2,
+    "name": "Dispensary",
+    "type": "green",
+    "cost": {
+      "clay": 2,
+      "stone": 1
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 2,
+    "coins": 0,
+    "scientificSymbol": 4,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null,
+    "freeIfHas": 15
+  },
+  "37": {
+    "id": 37,
+    "age": 2,
+    "name": "Library",
+    "type": "green",
+    "cost": {
+      "stone": 1,
+      "wood": 1,
+      "glass": 1
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 2,
+    "coins": 0,
+    "scientificSymbol": 6,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null,
+    "freeIfHas": 13
+  },
+  "38": {
+    "id": 38,
+    "age": 2,
+    "name": "Brewery",
+    "type": "yellow",
+    "cost": {},
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 0,
+    "coins": 6,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null,
+    "providesFreeFor": [
+      56
+    ]
+  },
+  "39": {
+    "id": 39,
+    "age": 2,
+    "name": "Forum",
+    "type": "yellow",
+    "cost": {
+      "coins": 3,
+      "clay": 1
+    },
+    "resources": {},
+    "resourceChoice": [
+      "glass",
+      "papyrus"
+    ],
+    "military": 0,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null
+  },
+  "40": {
+    "id": 40,
+    "age": 2,
+    "name": "Caravansery",
+    "type": "yellow",
+    "cost": {
+      "coins": 2,
+      "glass": 1,
+      "papyrus": 1
+    },
+    "resources": {},
+    "resourceChoice": [
+      "wood",
+      "clay",
+      "stone"
+    ],
+    "military": 0,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null
+  },
+  "41": {
+    "id": 41,
+    "age": 2,
+    "name": "Customs House",
+    "type": "yellow",
+    "cost": {
+      "coins": 4
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [
+      "papyrus",
+      "glass"
+    ],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null
+  },
+  "42": {
+    "id": 42,
+    "age": 2,
+    "name": "Temple",
+    "type": "blue",
+    "cost": {
+      "wood": 1,
+      "papyrus": 1
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 4,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null,
+    "providesFreeFor": [
+      63
+    ],
+    "freeIfHas": 22
+  },
+  "43": {
+    "id": 43,
+    "age": 2,
+    "name": "Statue",
+    "type": "blue",
+    "cost": {
+      "clay": 2
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 4,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null,
+    "providesFreeFor": [
+      62
+    ],
+    "freeIfHas": 21
+  },
+  "44": {
+    "id": 44,
+    "age": 2,
+    "name": "Courthouse",
+    "type": "blue",
+    "cost": {
+      "wood": 2,
+      "glass": 1
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 5,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null
+  },
+  "45": {
+    "id": 45,
+    "age": 2,
+    "name": "Aqueduct",
+    "type": "blue",
+    "cost": {
+      "stone": 3
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 5,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null,
+    "freeIfHas": 23
+  },
+  "46": {
+    "id": 46,
+    "age": 2,
+    "name": "Rostrum",
+    "type": "blue",
+    "cost": {
+      "stone": 1,
+      "wood": 1
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 4,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null,
+    "providesFreeFor": [
+      65
+    ]
+  },
+  "47": {
+    "id": 47,
+    "age": 3,
+    "name": "Circus",
+    "type": "red",
+    "cost": {
+      "clay": 2,
+      "stone": 2
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 2,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null,
+    "freeIfHas": 33
+  },
+  "48": {
+    "id": 48,
+    "age": 3,
+    "name": "Arsenal",
+    "type": "red",
+    "cost": {
+      "clay": 3,
+      "wood": 2
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 3,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null
+  },
+  "49": {
+    "id": 49,
+    "age": 3,
+    "name": "Siege Workshop",
+    "type": "red",
+    "cost": {
+      "wood": 3,
+      "glass": 1
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 2,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null,
+    "freeIfHas": 32
+  },
+  "50": {
+    "id": 50,
+    "age": 3,
+    "name": "Fortifications",
+    "type": "red",
+    "cost": {
+      "stone": 2,
+      "clay": 1,
+      "papyrus": 1
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 2,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null,
+    "freeIfHas": 11
+  },
+  "51": {
+    "id": 51,
+    "age": 3,
+    "name": "Pretorium",
+    "type": "red",
+    "cost": {
+      "coins": 8
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 3,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null
+  },
+  "52": {
+    "id": 52,
+    "age": 3,
+    "name": "Academy",
+    "type": "green",
+    "cost": {
+      "stone": 1,
+      "wood": 1,
+      "glass": 2
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 3,
+    "coins": 0,
+    "scientificSymbol": 3,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null
+  },
+  "53": {
+    "id": 53,
+    "age": 3,
+    "name": "University",
+    "type": "green",
+    "cost": {
+      "clay": 1,
+      "glass": 1,
+      "papyrus": 1
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 2,
+    "coins": 0,
+    "scientificSymbol": 1,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null,
+    "freeIfHas": 34
+  },
+  "54": {
+    "id": 54,
+    "age": 3,
+    "name": "Study",
+    "type": "green",
+    "cost": {
+      "wood": 2,
+      "glass": 1,
+      "papyrus": 1
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 3,
+    "coins": 0,
+    "scientificSymbol": 3,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null
+  },
+  "55": {
+    "id": 55,
+    "age": 3,
+    "name": "Observatory",
+    "type": "green",
+    "cost": {
+      "stone": 1,
+      "papyrus": 2
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 2,
+    "coins": 0,
+    "scientificSymbol": 1,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null,
+    "freeIfHas": 35
+  },
+  "56": {
+    "id": 56,
+    "age": 3,
+    "name": "Arena",
+    "type": "yellow",
+    "cost": {
+      "clay": 1,
+      "stone": 1,
+      "wood": 1
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 3,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 2,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null,
+    "freeIfHas": 38
+  },
+  "57": {
+    "id": 57,
+    "age": 3,
+    "name": "Chamber Of Commerce",
+    "type": "yellow",
+    "cost": {
+      "papyrus": 2
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 3,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": {
+      "type": "grey",
+      "coins": 3
+    },
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null
+  },
+  "58": {
+    "id": 58,
+    "age": 3,
+    "name": "Port",
+    "type": "yellow",
+    "cost": {
+      "wood": 1,
+      "glass": 1,
+      "papyrus": 1
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 3,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": {
+      "type": "brown",
+      "coins": 2
+    },
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null
+  },
+  "59": {
+    "id": 59,
+    "age": 3,
+    "name": "Lighthouse",
+    "type": "yellow",
+    "cost": {
+      "clay": 2,
+      "glass": 1
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 3,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": {
+      "type": "yellow",
+      "coins": 1
+    },
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null,
+    "freeIfHas": 17
+  },
+  "60": {
+    "id": 60,
+    "age": 3,
+    "name": "Armory",
+    "type": "yellow",
+    "cost": {
+      "stone": 2,
+      "glass": 1
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 3,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": {
+      "type": "red",
+      "coins": 1
+    },
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null
+  },
+  "61": {
+    "id": 61,
+    "age": 3,
+    "name": "Palace",
+    "type": "blue",
+    "cost": {
+      "clay": 1,
+      "stone": 1,
+      "wood": 1,
+      "glass": 2
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 7,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null
+  },
+  "62": {
+    "id": 62,
+    "age": 3,
+    "name": "Gardens",
+    "type": "blue",
+    "cost": {
+      "clay": 2,
+      "wood": 2
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 6,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null,
+    "freeIfHas": 43
+  },
+  "63": {
+    "id": 63,
+    "age": 3,
+    "name": "Pantheon",
+    "type": "blue",
+    "cost": {
+      "clay": 1,
+      "wood": 1,
+      "papyrus": 2
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 6,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null,
+    "freeIfHas": 42
+  },
+  "64": {
+    "id": 64,
+    "age": 3,
+    "name": "Town Hall",
+    "type": "blue",
+    "cost": {
+      "stone": 3,
+      "wood": 2
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 7,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null
+  },
+  "65": {
+    "id": 65,
+    "age": 3,
+    "name": "Senate",
+    "type": "blue",
+    "cost": {
+      "clay": 2,
+      "stone": 1,
+      "papyrus": 1
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 5,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null,
+    "freeIfHas": 46
+  },
+  "66": {
+    "id": 66,
+    "age": 3,
+    "name": "Obelisk",
+    "type": "blue",
+    "cost": {
+      "stone": 2,
+      "glass": 1
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 5,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null
+  },
+  "67": {
+    "id": 67,
+    "age": 4,
+    "name": "Merchants Guild",
+    "type": "purple",
+    "cost": {
+      "clay": 1,
+      "wood": 1,
+      "glass": 1,
+      "papyrus": 1
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": [
+      "yellow"
+    ]
+  },
+  "68": {
+    "id": 68,
+    "age": 4,
+    "name": "Shipowners Guild",
+    "type": "purple",
+    "cost": {
+      "clay": 1,
+      "stone": 1,
+      "glass": 1,
+      "papyrus": 1
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": [
+      "brown",
+      "grey"
+    ]
+  },
+  "69": {
+    "id": 69,
+    "age": 4,
+    "name": "Builders Guild",
+    "type": "purple",
+    "cost": {
+      "stone": 2,
+      "clay": 1,
+      "wood": 1,
+      "glass": 1
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": true,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": null
+  },
+  "70": {
+    "id": 70,
+    "age": 4,
+    "name": "Magistrates Guild",
+    "type": "purple",
+    "cost": {
+      "wood": 2,
+      "clay": 1,
+      "papyrus": 1
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": [
+      "blue"
+    ]
+  },
+  "71": {
+    "id": 71,
+    "age": 4,
+    "name": "Scientists Guild",
+    "type": "purple",
+    "cost": {
+      "clay": 2,
+      "wood": 2
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": [
+      "green"
+    ]
+  },
+  "72": {
+    "id": 72,
+    "age": 4,
+    "name": "Moneylenders Guild",
+    "type": "purple",
+    "cost": {
+      "stone": 2,
+      "wood": 2
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": true,
+    "guildRewardBuildingTypes": null
+  },
+  "73": {
+    "id": 73,
+    "age": 4,
+    "name": "Tacticians Guild",
+    "type": "purple",
+    "cost": {
+      "stone": 2,
+      "clay": 1,
+      "papyrus": 1
+    },
+    "resources": {},
+    "resourceChoice": [],
+    "military": 0,
+    "victoryPoints": 0,
+    "coins": 0,
+    "scientificSymbol": null,
+    "fixedPriceResources": [],
+    "coinsPerBuildingOfType": null,
+    "coinsPerWonder": 0,
+    "guildRewardWonders": false,
+    "guildRewardCoinTriplets": false,
+    "guildRewardBuildingTypes": [
+      "red"
+    ]
+  }
+};
+var AGE_LAYOUTS = {
+  1: [
+    { cols: [5, 7], faceUp: true },
+    { cols: [4, 6, 8], faceUp: false },
+    { cols: [3, 5, 7, 9], faceUp: true },
+    { cols: [2, 4, 6, 8, 10], faceUp: false },
+    { cols: [1, 3, 5, 7, 9, 11], faceUp: true }
+  ],
+  2: [
+    { cols: [1, 3, 5, 7, 9, 11], faceUp: true },
+    { cols: [2, 4, 6, 8, 10], faceUp: false },
+    { cols: [3, 5, 7, 9], faceUp: true },
+    { cols: [4, 6, 8], faceUp: false },
+    { cols: [5, 7], faceUp: true }
+  ],
+  3: [
+    { cols: [5, 7], faceUp: true },
+    { cols: [4, 6, 8], faceUp: false },
+    { cols: [3, 5, 7, 9], faceUp: true },
+    { cols: [4, 8], faceUp: false },
+    { cols: [3, 5, 7, 9], faceUp: true },
+    { cols: [4, 6, 8], faceUp: false },
+    { cols: [5, 7], faceUp: true }
+  ]
+};
+
+// src/games/seven-wonders-duel/engine.ts
+function createInitialSWDGame(player1, player2) {
+  const allWonders = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].sort(() => Math.random() - 0.5);
+  const round1Wonders = allWonders.slice(0, 4);
+  const allTokens = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].sort(() => Math.random() - 0.5);
+  const boardTokens = allTokens.slice(0, 5);
+  const boxTokens = allTokens.slice(5, 10);
+  const players = {
+    [player1.id]: {
+      userId: player1.id,
+      name: player1.name,
+      avatar: player1.avatar,
+      isBot: player1.isBot,
+      coins: 7,
+      wonders: [],
+      buildings: [],
+      progressTokens: [],
+      scienceSymbols: []
+    },
+    [player2.id]: {
+      userId: player2.id,
+      name: player2.name,
+      avatar: player2.avatar,
+      isBot: player2.isBot,
+      coins: 7,
+      wonders: [],
+      buildings: [],
+      progressTokens: [],
+      scienceSymbols: []
+    }
+  };
+  return {
+    id: "swd_" + Date.now(),
+    currentPhase: "wonder_draft",
+    currentAge: 1,
+    activePlayerId: player1.id,
+    playerOrder: [player1.id, player2.id],
+    players,
+    wonderDraftRound: 1,
+    wonderDraftPool: round1Wonders,
+    wonderDraftStep: 0,
+    draftPool: [],
+    conflictPawnPosition: 0,
+    militaryTokens: [
+      { position: -6, value: 5, isTaken: false },
+      { position: -3, value: 2, isTaken: false },
+      { position: 3, value: 2, isTaken: false },
+      { position: 6, value: 5, isTaken: false }
+    ],
+    boardProgressTokens: boardTokens,
+    boxProgressTokens: boxTokens,
+    discardPile: [],
+    extraTurn: false,
+    actionLog: [
+      `Game started! ${player1.name} and ${player2.name} are drafting Wonders.`
+    ]
+  };
+}
+function generateAgeDraftPool(age) {
+  let cardIds = [];
+  if (age === 1) {
+    const age1Cards = Object.values(BUILDINGS).filter((b) => b.age === 1).map((b) => b.id).sort(() => Math.random() - 0.5);
+    cardIds = age1Cards.slice(0, 20);
+  } else if (age === 2) {
+    const age2Cards = Object.values(BUILDINGS).filter((b) => b.age === 2).map((b) => b.id).sort(() => Math.random() - 0.5);
+    cardIds = age2Cards.slice(0, 20);
+  } else {
+    const age3Cards = Object.values(BUILDINGS).filter((b) => b.age === 3).map((b) => b.id).sort(() => Math.random() - 0.5).slice(0, 17);
+    const guildCards = Object.values(BUILDINGS).filter((b) => b.type === "purple").map((b) => b.id).sort(() => Math.random() - 0.5).slice(0, 3);
+    cardIds = [...age3Cards, ...guildCards].sort(() => Math.random() - 0.5);
+  }
+  const layout = AGE_LAYOUTS[age];
+  const draftPool = [];
+  let cardIdx = 0;
+  layout.forEach((rowConfig, rowIndex) => {
+    rowConfig.cols.forEach((col) => {
+      draftPool.push({
+        id: cardIds[cardIdx++],
+        row: rowIndex,
+        col,
+        faceUp: rowConfig.faceUp,
+        isTaken: false
+      });
+    });
+  });
+  return draftPool;
+}
+function isCardAvailable(card, draftPool) {
+  if (card.isTaken) return false;
+  const rowBelow = card.row + 1;
+  const coveringCards = draftPool.filter(
+    (c) => !c.isTaken && c.row === rowBelow && (c.col === card.col - 1 || c.col === card.col + 1)
+  );
+  return coveringCards.length === 0;
+}
+function updateDraftPoolAvailability(draftPool) {
+  return draftPool.map((c) => {
+    if (c.isTaken) return c;
+    const available = isCardAvailable(c, draftPool);
+    if (available && !c.faceUp) {
+      return { ...c, faceUp: true };
+    }
+    return c;
+  });
+}
+function getPlayerProduction(player) {
+  const basic = {
+    wood: 0,
+    clay: 0,
+    stone: 0,
+    glass: 0,
+    papyrus: 0
+  };
+  const flexible = [];
+  const fixedPrice = /* @__PURE__ */ new Set();
+  player.buildings.forEach((cardId) => {
+    const b = BUILDINGS[cardId];
+    if (!b) return;
+    if (b.resources) {
+      Object.keys(b.resources).forEach((res) => {
+        basic[res] += b.resources[res] || 0;
+      });
+    }
+    if (b.resourceChoice && b.resourceChoice.length > 0) {
+      flexible.push(b.resourceChoice);
+    }
+    if (b.fixedPriceResources) {
+      b.fixedPriceResources.forEach((res) => fixedPrice.add(res));
+    }
+  });
+  player.wonders.filter((w) => w.isConstructed).forEach((pw) => {
+    const wonder = WONDERS[pw.id];
+    if (wonder && wonder.resourceChoice && wonder.resourceChoice.length > 0) {
+      flexible.push(wonder.resourceChoice);
+    }
+  });
+  return { basic, flexible, fixedPrice };
+}
+function calculateCost(state, playerId, target) {
+  const player = state.players[playerId];
+  const opponentId = state.playerOrder[0] === playerId ? state.playerOrder[1] : state.playerOrder[0];
+  const opponent = state.players[opponentId];
+  if (target.type === "building" && target.building.freeIfHas) {
+    if (player.buildings.includes(target.building.freeIfHas)) {
+      return {
+        canAfford: true,
+        isFreeThroughLink: true,
+        requiredCoins: 0,
+        producedResources: {},
+        missingResources: {},
+        tradeCostPerResource: {},
+        totalTradeCost: 0
+      };
+    }
+  }
+  const { basic, flexible, fixedPrice } = getPlayerProduction(player);
+  const opponentProduction = getPlayerProduction(opponent).basic;
+  const rawCost = {
+    ...target.type === "building" ? target.building.cost : target.wonder.cost
+  };
+  const coinCost = rawCost.coins || 0;
+  delete rawCost.coins;
+  let discountRemaining = 0;
+  if (target.type === "wonder" && player.progressTokens.includes(2)) {
+    discountRemaining = 2;
+  } else if (target.type === "building" && target.building.type === "blue" && player.progressTokens.includes(5)) {
+    discountRemaining = 2;
+  }
+  const needed = {};
+  Object.keys(rawCost).forEach((res) => {
+    const req = rawCost[res] || 0;
+    if (req > 0) needed[res] = req;
+  });
+  const produced = {};
+  Object.keys(needed).forEach((res) => {
+    const req = needed[res] || 0;
+    const prod = basic[res] || 0;
+    const used = Math.min(req, prod);
+    produced[res] = used;
+    needed[res] = req - used;
+    if (needed[res] === 0) delete needed[res];
+  });
+  const getResourceTradePrice = (res) => {
+    if (fixedPrice.has(res)) return 1;
+    return 2 + (opponentProduction[res] || 0);
+  };
+  let bestTradeCost = Infinity;
+  let bestMissing = {};
+  const evaluateAllocation = (remNeeded, flexIdx, discounts) => {
+    if (flexIdx >= flexible.length) {
+      const currentMissing = { ...remNeeded };
+      let d = discounts;
+      while (d > 0) {
+        const missingKeys = Object.keys(currentMissing);
+        if (missingKeys.length === 0) break;
+        missingKeys.sort((a, b) => getResourceTradePrice(b) - getResourceTradePrice(a));
+        const topRes = missingKeys[0];
+        currentMissing[topRes] = (currentMissing[topRes] || 1) - 1;
+        if (currentMissing[topRes] === 0) delete currentMissing[topRes];
+        d--;
+      }
+      let cost = 0;
+      Object.keys(currentMissing).forEach((res) => {
+        const count = currentMissing[res] || 0;
+        cost += count * getResourceTradePrice(res);
+      });
+      if (cost < bestTradeCost) {
+        bestTradeCost = cost;
+        bestMissing = currentMissing;
+      }
+      return;
+    }
+    const choices = flexible[flexIdx];
+    evaluateAllocation(remNeeded, flexIdx + 1, discounts);
+    for (const ch of choices) {
+      if ((remNeeded[ch] || 0) > 0) {
+        const nextNeeded = { ...remNeeded };
+        nextNeeded[ch] = (nextNeeded[ch] || 1) - 1;
+        if (nextNeeded[ch] === 0) delete nextNeeded[ch];
+        evaluateAllocation(nextNeeded, flexIdx + 1, discounts);
+      }
+    }
+  };
+  evaluateAllocation(needed, 0, discountRemaining);
+  const tradeCostPerResource = {};
+  Object.keys(bestMissing).forEach((res) => {
+    tradeCostPerResource[res] = getResourceTradePrice(res);
+  });
+  const totalCost = coinCost + (bestTradeCost === Infinity ? 0 : bestTradeCost);
+  return {
+    canAfford: player.coins >= totalCost,
+    isFreeThroughLink: false,
+    requiredCoins: coinCost,
+    producedResources: produced,
+    missingResources: bestMissing,
+    tradeCostPerResource,
+    totalTradeCost: bestTradeCost === Infinity ? 0 : bestTradeCost
+  };
+}
+function calculateDiscardGain(player) {
+  const yellowCount = player.buildings.filter(
+    (id) => BUILDINGS[id]?.type === "yellow"
+  ).length;
+  return 2 + yellowCount;
+}
+function checkSupremacyVictory(state) {
+  const p1Id = state.playerOrder[0];
+  const p2Id = state.playerOrder[1];
+  if (state.conflictPawnPosition >= 9) {
+    return {
+      ...state,
+      currentPhase: "game_over",
+      winner: {
+        userId: p1Id,
+        reason: "military"
+      },
+      actionLog: [
+        ...state.actionLog,
+        `\u2694\uFE0F Military Supremacy! ${state.players[p1Id].name} has conquered the capital!`
+      ]
+    };
+  }
+  if (state.conflictPawnPosition <= -9) {
+    return {
+      ...state,
+      currentPhase: "game_over",
+      winner: {
+        userId: p2Id,
+        reason: "military"
+      },
+      actionLog: [
+        ...state.actionLog,
+        `\u2694\uFE0F Military Supremacy! ${state.players[p2Id].name} has conquered the capital!`
+      ]
+    };
+  }
+  for (const pid of [p1Id, p2Id]) {
+    const player = state.players[pid];
+    const uniqueSymbols = new Set(player.scienceSymbols);
+    if (uniqueSymbols.size >= 6) {
+      return {
+        ...state,
+        currentPhase: "game_over",
+        winner: {
+          userId: pid,
+          reason: "science"
+        },
+        actionLog: [
+          ...state.actionLog,
+          `\u{1F3DB}\uFE0F Scientific Supremacy! ${player.name} has unlocked 6 scientific disciplines!`
+        ]
+      };
+    }
+  }
+  return state;
+}
+function getMilitaryVictoryPoints(conflictPawnPosition, isPlayer1) {
+  const netPos = isPlayer1 ? conflictPawnPosition : -conflictPawnPosition;
+  if (netPos <= 0) return 0;
+  if (netPos >= 6) return 10;
+  if (netPos >= 3) return 5;
+  if (netPos >= 1) return 2;
+  return 0;
+}
+function calculateFinalScores(state) {
+  const p1Id = state.playerOrder[0];
+  const p2Id = state.playerOrder[1];
+  const p1 = state.players[p1Id];
+  const p2 = state.players[p2Id];
+  const calcPlayer = (player, opponent, isPlayer1) => {
+    let civilian = 0;
+    let science = 0;
+    let wondersVP = 0;
+    let tokens = 0;
+    let guilds = 0;
+    player.buildings.forEach((cid) => {
+      const b = BUILDINGS[cid];
+      if (!b) return;
+      if (b.type === "blue") civilian += b.victoryPoints;
+      if (b.type === "green") science += b.victoryPoints;
+      if (b.type === "yellow") civilian += b.victoryPoints;
+      if (b.type === "purple") {
+        if (b.guildRewardBuildingTypes) {
+          const type = b.guildRewardBuildingTypes[0];
+          const countP = player.buildings.filter((c) => BUILDINGS[c]?.type === type).length;
+          const countO = opponent.buildings.filter((c) => BUILDINGS[c]?.type === type).length;
+          guilds += Math.max(countP, countO);
+        } else if (b.guildRewardWonders) {
+          const wP = player.wonders.filter((w) => w.isConstructed).length;
+          const wO = opponent.wonders.filter((w) => w.isConstructed).length;
+          guilds += Math.max(wP, wO) * 2;
+        } else if (b.guildRewardCoinTriplets) {
+          const maxCoins = Math.max(player.coins, opponent.coins);
+          guilds += Math.floor(maxCoins / 3);
+        }
+      }
+    });
+    player.wonders.filter((w) => w.isConstructed).forEach((pw) => {
+      const w = WONDERS[pw.id];
+      if (w) wondersVP += w.victoryPoints;
+    });
+    player.progressTokens.forEach((tid) => {
+      const t = PROGRESS_TOKENS[tid];
+      if (!t) return;
+      if (t.victoryPoints) tokens += t.victoryPoints;
+      if (tid === 6) {
+        tokens += player.progressTokens.length * 3;
+      }
+    });
+    const military = getMilitaryVictoryPoints(state.conflictPawnPosition, isPlayer1);
+    const treasury = Math.floor(player.coins / 3);
+    const total = civilian + science + military + wondersVP + tokens + guilds + treasury;
+    return {
+      civilian,
+      science,
+      military,
+      wonders: wondersVP,
+      tokens,
+      guilds,
+      treasury,
+      total
+    };
+  };
+  return {
+    [p1Id]: calcPlayer(p1, p2, true),
+    [p2Id]: calcPlayer(p2, p1, false)
+  };
+}
+function processSWDAction(state, playerId, action) {
+  if (state.currentPhase === "game_over") return state;
+  if (state.activePlayerId !== playerId && state.pendingActionPlayerId !== playerId) {
+    throw new Error("Not your turn");
+  }
+  let nextState = JSON.parse(JSON.stringify(state));
+  const player = nextState.players[playerId];
+  const opponentId = nextState.playerOrder[0] === playerId ? nextState.playerOrder[1] : nextState.playerOrder[0];
+  const opponent = nextState.players[opponentId];
+  if (action.type === "draft_wonder") {
+    if (nextState.currentPhase !== "wonder_draft") {
+      throw new Error("Not in wonder draft phase");
+    }
+    if (!nextState.wonderDraftPool.includes(action.wonderId)) {
+      throw new Error("Wonder not in draft pool");
+    }
+    player.wonders.push({ id: action.wonderId, isConstructed: false });
+    nextState.wonderDraftPool = nextState.wonderDraftPool.filter((id) => id !== action.wonderId);
+    const wonder = WONDERS[action.wonderId];
+    nextState.actionLog.push(`${player.name} selected Wonder \u201C${wonder.name}\u201D.`);
+    const p1Id = nextState.playerOrder[0];
+    const p2Id = nextState.playerOrder[1];
+    if (nextState.wonderDraftRound === 1) {
+      if (nextState.wonderDraftStep === 0) {
+        nextState.activePlayerId = p2Id;
+        nextState.wonderDraftStep = 1;
+      } else if (nextState.wonderDraftStep === 1) {
+        nextState.activePlayerId = p2Id;
+        nextState.wonderDraftStep = 2;
+      } else if (nextState.wonderDraftStep === 2) {
+        const lastWonder = nextState.wonderDraftPool[0];
+        nextState.players[p1Id].wonders.push({ id: lastWonder, isConstructed: false });
+        nextState.actionLog.push(`${nextState.players[p1Id].name} received Wonder \u201C${WONDERS[lastWonder].name}\u201D.`);
+        let allRemainingWonders = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].filter(
+          (id) => !nextState.players[p1Id].wonders.some((w) => w.id === id) && !nextState.players[p2Id].wonders.some((w) => w.id === id)
+        );
+        allRemainingWonders = allRemainingWonders.sort(() => Math.random() - 0.5);
+        nextState.wonderDraftRound = 2;
+        nextState.wonderDraftPool = allRemainingWonders.slice(0, 4);
+        nextState.wonderDraftStep = 0;
+        nextState.activePlayerId = p2Id;
+      }
+    } else {
+      if (nextState.wonderDraftStep === 0) {
+        nextState.activePlayerId = p1Id;
+        nextState.wonderDraftStep = 1;
+      } else if (nextState.wonderDraftStep === 1) {
+        nextState.activePlayerId = p1Id;
+        nextState.wonderDraftStep = 2;
+      } else if (nextState.wonderDraftStep === 2) {
+        const lastWonder = nextState.wonderDraftPool[0];
+        nextState.players[p2Id].wonders.push({ id: lastWonder, isConstructed: false });
+        nextState.actionLog.push(`${nextState.players[p2Id].name} received Wonder \u201C${WONDERS[lastWonder].name}\u201D.`);
+        nextState.currentPhase = "main_game";
+        nextState.currentAge = 1;
+        nextState.draftPool = generateAgeDraftPool(1);
+        nextState.draftPool = updateDraftPoolAvailability(nextState.draftPool);
+        nextState.activePlayerId = p1Id;
+        nextState.actionLog.push(`\u{1F3DB}\uFE0F Age I begins! ${nextState.players[p1Id].name} plays first.`);
+      }
+    }
+    return nextState;
+  }
+  if (action.type === "construct_building") {
+    const card = nextState.draftPool.find((c) => c.id === action.cardId);
+    if (!card || card.isTaken || !isCardAvailable(card, nextState.draftPool)) {
+      throw new Error("Card is not available");
+    }
+    const building = BUILDINGS[action.cardId];
+    if (!building) throw new Error("Building not found");
+    const costBreakdown = calculateCost(nextState, playerId, {
+      type: "building",
+      building
+    });
+    if (!costBreakdown.canAfford) {
+      throw new Error("Cannot afford building");
+    }
+    const totalCoinsPaid = costBreakdown.requiredCoins + costBreakdown.totalTradeCost;
+    player.coins -= totalCoinsPaid;
+    if (costBreakdown.totalTradeCost > 0 && opponent.progressTokens.includes(3)) {
+      opponent.coins += costBreakdown.totalTradeCost;
+      nextState.actionLog.push(
+        `\u{1F4B0} Economy! ${opponent.name} gained ${costBreakdown.totalTradeCost} coins spent in trade.`
+      );
+    }
+    card.isTaken = true;
+    player.buildings.push(building.id);
+    if (building.coins > 0) {
+      player.coins += building.coins;
+    }
+    if (building.coinsPerBuildingOfType) {
+      const type = building.coinsPerBuildingOfType.type;
+      const count = player.buildings.filter((id) => BUILDINGS[id]?.type === type).length;
+      const gained = count * building.coinsPerBuildingOfType.coins;
+      player.coins += gained;
+    }
+    if (building.coinsPerWonder && building.coinsPerWonder > 0) {
+      const wCount = player.wonders.filter((w) => w.isConstructed).length;
+      player.coins += wCount * building.coinsPerWonder;
+    }
+    if (costBreakdown.isFreeThroughLink && player.progressTokens.includes(10)) {
+      player.coins += 4;
+      nextState.actionLog.push(
+        `\u{1F3DB}\uFE0F Urbanism! ${player.name} gained 4 coins for constructing for free via chain.`
+      );
+    }
+    if (building.military > 0) {
+      let shields = building.military;
+      if (player.progressTokens.includes(8)) {
+        shields += 1;
+      }
+      applyMilitaryAdvance(nextState, playerId, shields);
+    }
+    let triggersProgressSelection = false;
+    if (building.scientificSymbol) {
+      player.scienceSymbols.push(building.scientificSymbol);
+      const symbolCounts = {};
+      player.scienceSymbols.forEach((s) => {
+        symbolCounts[s] = (symbolCounts[s] || 0) + 1;
+      });
+      if (symbolCounts[building.scientificSymbol] === 2) {
+        triggersProgressSelection = true;
+      }
+    }
+    nextState.lastAction = {
+      type: "construct_building",
+      playerId,
+      playerName: player.name,
+      cardId: building.id,
+      costPaid: totalCoinsPaid,
+      description: `${player.name} constructed \u201C${building.name}\u201D ${costBreakdown.isFreeThroughLink ? "for free (via chain link)" : `for ${totalCoinsPaid} coin${totalCoinsPaid === 1 ? "" : "s"}`}.`
+    };
+    nextState.actionLog.push(nextState.lastAction.description);
+    nextState.draftPool = updateDraftPoolAvailability(nextState.draftPool);
+    nextState = checkSupremacyVictory(nextState);
+    if (nextState.currentPhase === "game_over") return nextState;
+    if (triggersProgressSelection && nextState.boardProgressTokens.length > 0) {
+      nextState.currentPhase = "choose_progress_token";
+      nextState.pendingActionPlayerId = playerId;
+      nextState.availableSelectionTokens = [...nextState.boardProgressTokens];
+      return nextState;
+    }
+    return advanceTurnOrAge(nextState);
+  }
+  if (action.type === "discard_card") {
+    const card = nextState.draftPool.find((c) => c.id === action.cardId);
+    if (!card || card.isTaken || !isCardAvailable(card, nextState.draftPool)) {
+      throw new Error("Card is not available");
+    }
+    const building = BUILDINGS[action.cardId];
+    if (!building) throw new Error("Building not found");
+    const coinsGained = calculateDiscardGain(player);
+    player.coins += coinsGained;
+    card.isTaken = true;
+    nextState.discardPile.push(building.id);
+    nextState.lastAction = {
+      type: "discard_card",
+      playerId,
+      playerName: player.name,
+      cardId: building.id,
+      coinsGained,
+      description: `${player.name} discarded \u201C${building.name}\u201D and gained ${coinsGained} coins.`
+    };
+    nextState.actionLog.push(nextState.lastAction.description);
+    nextState.draftPool = updateDraftPoolAvailability(nextState.draftPool);
+    return advanceTurnOrAge(nextState);
+  }
+  if (action.type === "construct_wonder") {
+    const card = nextState.draftPool.find((c) => c.id === action.cardId);
+    if (!card || card.isTaken || !isCardAvailable(card, nextState.draftPool)) {
+      throw new Error("Card is not available");
+    }
+    const totalConstructed = nextState.players[nextState.playerOrder[0]].wonders.filter((w) => w.isConstructed).length + nextState.players[nextState.playerOrder[1]].wonders.filter((w) => w.isConstructed).length;
+    if (totalConstructed >= 7) {
+      throw new Error("Maximum of 7 wonders already constructed");
+    }
+    const playerWonder = player.wonders.find((w) => w.id === action.wonderId);
+    if (!playerWonder || playerWonder.isConstructed) {
+      throw new Error("Wonder already constructed or not owned");
+    }
+    const wonder = WONDERS[action.wonderId];
+    const costBreakdown = calculateCost(nextState, playerId, {
+      type: "wonder",
+      wonder
+    });
+    if (!costBreakdown.canAfford) {
+      throw new Error("Cannot afford wonder");
+    }
+    const totalCoinsPaid = costBreakdown.requiredCoins + costBreakdown.totalTradeCost;
+    player.coins -= totalCoinsPaid;
+    if (costBreakdown.totalTradeCost > 0 && opponent.progressTokens.includes(3)) {
+      opponent.coins += costBreakdown.totalTradeCost;
+      nextState.actionLog.push(
+        `\u{1F4B0} Economy! ${opponent.name} gained ${costBreakdown.totalTradeCost} coins spent in trade.`
+      );
+    }
+    card.isTaken = true;
+    playerWonder.isConstructed = true;
+    playerWonder.tuckedCardId = card.id;
+    if (wonder.coins) player.coins += wonder.coins;
+    if (wonder.military) {
+      applyMilitaryAdvance(nextState, playerId, wonder.military);
+    }
+    if (wonder.opponentCoinLoss) {
+      const lost = Math.min(opponent.coins, wonder.opponentCoinLoss);
+      opponent.coins -= lost;
+      nextState.actionLog.push(`\u{1F4B8} ${opponent.name} lost ${lost} coins from ${wonder.name}.`);
+    }
+    let grantsExtraTurn = !!wonder.extraTurn || player.progressTokens.includes(9);
+    nextState.lastAction = {
+      type: "construct_wonder",
+      playerId,
+      playerName: player.name,
+      wonderId: wonder.id,
+      cardId: card.id,
+      costPaid: totalCoinsPaid,
+      description: `${player.name} constructed Wonder \u201C${wonder.name}\u201D using ${BUILDINGS[card.id]?.name}!`
+    };
+    nextState.actionLog.push(nextState.lastAction.description);
+    nextState.draftPool = updateDraftPoolAvailability(nextState.draftPool);
+    nextState = checkSupremacyVictory(nextState);
+    if (nextState.currentPhase === "game_over") return nextState;
+    if (wonder.progressTokenFromBox && nextState.boxProgressTokens.length > 0) {
+      nextState.currentPhase = "choose_progress_token";
+      nextState.pendingActionPlayerId = playerId;
+      nextState.availableSelectionTokens = nextState.boxProgressTokens.slice(0, 3);
+      nextState.extraTurn = grantsExtraTurn;
+      return nextState;
+    }
+    if (wonder.discardBuildingTake && nextState.discardPile.length > 0) {
+      nextState.currentPhase = "choose_discarded_card";
+      nextState.pendingActionPlayerId = playerId;
+      nextState.extraTurn = grantsExtraTurn;
+      return nextState;
+    }
+    if (wonder.destroyOpponentBrown && opponent.buildings.some((id) => BUILDINGS[id]?.type === "brown")) {
+      nextState.currentPhase = "destroy_opponent_card";
+      nextState.pendingActionPlayerId = playerId;
+      nextState.destroyCardColor = "brown";
+      nextState.extraTurn = grantsExtraTurn;
+      return nextState;
+    }
+    if (wonder.destroyOpponentGrey && opponent.buildings.some((id) => BUILDINGS[id]?.type === "grey")) {
+      nextState.currentPhase = "destroy_opponent_card";
+      nextState.pendingActionPlayerId = playerId;
+      nextState.destroyCardColor = "grey";
+      nextState.extraTurn = grantsExtraTurn;
+      return nextState;
+    }
+    if (grantsExtraTurn) {
+      nextState.actionLog.push(`\u26A1 Play Again! ${player.name} takes an immediate extra turn.`);
+      return nextState;
+    }
+    return advanceTurnOrAge(nextState);
+  }
+  if (action.type === "choose_progress_token") {
+    if (nextState.currentPhase !== "choose_progress_token") {
+      throw new Error("Not in progress token selection phase");
+    }
+    const token = PROGRESS_TOKENS[action.tokenId];
+    if (!token) throw new Error("Token not found");
+    player.progressTokens.push(token.id);
+    if (token.scientificSymbol) {
+      player.scienceSymbols.push(token.scientificSymbol);
+    }
+    if (token.coins) {
+      player.coins += token.coins;
+    }
+    nextState.boardProgressTokens = nextState.boardProgressTokens.filter((id) => id !== token.id);
+    nextState.boxProgressTokens = nextState.boxProgressTokens.filter((id) => id !== token.id);
+    nextState.actionLog.push(`${player.name} obtained Progress Token \u201C${token.name}\u201D.`);
+    nextState.currentPhase = "main_game";
+    nextState.pendingActionPlayerId = void 0;
+    nextState.availableSelectionTokens = void 0;
+    nextState = checkSupremacyVictory(nextState);
+    if (nextState.currentPhase === "game_over") return nextState;
+    if (nextState.extraTurn) {
+      nextState.extraTurn = false;
+      return nextState;
+    }
+    return advanceTurnOrAge(nextState);
+  }
+  if (action.type === "choose_discarded_card") {
+    if (nextState.currentPhase !== "choose_discarded_card") {
+      throw new Error("Not in choose discarded card phase");
+    }
+    if (!nextState.discardPile.includes(action.cardId)) {
+      throw new Error("Card not in discard pile");
+    }
+    const building = BUILDINGS[action.cardId];
+    nextState.discardPile = nextState.discardPile.filter((id) => id !== action.cardId);
+    player.buildings.push(building.id);
+    if (building.coins > 0) player.coins += building.coins;
+    if (building.military > 0) {
+      let shields = building.military;
+      if (player.progressTokens.includes(8)) shields += 1;
+      applyMilitaryAdvance(nextState, playerId, shields);
+    }
+    if (building.scientificSymbol) {
+      player.scienceSymbols.push(building.scientificSymbol);
+    }
+    nextState.actionLog.push(
+      `\u{1F3DB}\uFE0F Mausoleum! ${player.name} retrieved \u201C${building.name}\u201D from the discard pile for free!`
+    );
+    nextState.currentPhase = "main_game";
+    nextState.pendingActionPlayerId = void 0;
+    nextState = checkSupremacyVictory(nextState);
+    if (nextState.currentPhase === "game_over") return nextState;
+    if (nextState.extraTurn) {
+      nextState.extraTurn = false;
+      return nextState;
+    }
+    return advanceTurnOrAge(nextState);
+  }
+  if (action.type === "destroy_opponent_card") {
+    if (nextState.currentPhase !== "destroy_opponent_card") {
+      throw new Error("Not in destroy opponent card phase");
+    }
+    if (!opponent.buildings.includes(action.cardId)) {
+      throw new Error("Opponent does not have this building");
+    }
+    const b = BUILDINGS[action.cardId];
+    opponent.buildings = opponent.buildings.filter((id) => id !== action.cardId);
+    nextState.discardPile.push(action.cardId);
+    nextState.actionLog.push(`\u26A1 ${player.name} destroyed opponent\u2019s \u201C${b?.name}\u201D!`);
+    nextState.currentPhase = "main_game";
+    nextState.pendingActionPlayerId = void 0;
+    nextState.destroyCardColor = void 0;
+    if (nextState.extraTurn) {
+      nextState.extraTurn = false;
+      return nextState;
+    }
+    return advanceTurnOrAge(nextState);
+  }
+  if (action.type === "choose_start_player") {
+    if (nextState.currentPhase !== "choose_start_player") {
+      throw new Error("Not in choose start player phase");
+    }
+    nextState.activePlayerId = action.nextPlayerId;
+    nextState.currentPhase = "main_game";
+    nextState.draftPool = generateAgeDraftPool(nextState.currentAge);
+    nextState.draftPool = updateDraftPoolAvailability(nextState.draftPool);
+    nextState.actionLog.push(
+      `\u{1F3DB}\uFE0F Age ${nextState.currentAge === 2 ? "II" : "III"} starts! ${nextState.players[action.nextPlayerId].name} plays first.`
+    );
+    return nextState;
+  }
+  return nextState;
+}
+function applyMilitaryAdvance(state, playerId, shields) {
+  const isPlayer1 = state.playerOrder[0] === playerId;
+  const oldPos = state.conflictPawnPosition;
+  const direction = isPlayer1 ? 1 : -1;
+  const newPos = Math.max(-9, Math.min(9, oldPos + shields * direction));
+  state.conflictPawnPosition = newPos;
+  const opponentId = isPlayer1 ? state.playerOrder[1] : state.playerOrder[0];
+  const opponent = state.players[opponentId];
+  state.militaryTokens.forEach((tok) => {
+    if (!tok.isTaken) {
+      if (isPlayer1 && oldPos < tok.position && newPos >= tok.position && tok.position > 0) {
+        tok.isTaken = true;
+        const loss = Math.min(opponent.coins, tok.value);
+        opponent.coins -= loss;
+        state.actionLog.push(
+          `\u2694\uFE0F Military Breakthrough! ${opponent.name} lost ${loss} coins (plunder token).`
+        );
+      } else if (!isPlayer1 && oldPos > tok.position && newPos <= tok.position && tok.position < 0) {
+        tok.isTaken = true;
+        const loss = Math.min(opponent.coins, tok.value);
+        opponent.coins -= loss;
+        state.actionLog.push(
+          `\u2694\uFE0F Military Breakthrough! ${opponent.name} lost ${loss} coins (plunder token).`
+        );
+      }
+    }
+  });
+}
+function advanceTurnOrAge(state) {
+  const p1Id = state.playerOrder[0];
+  const p2Id = state.playerOrder[1];
+  const remaining = state.draftPool.filter((c) => !c.isTaken);
+  if (remaining.length === 0) {
+    if (state.currentAge < 3) {
+      state.currentAge += 1;
+      let chooserId = state.activePlayerId;
+      if (state.conflictPawnPosition > 0) {
+        chooserId = p2Id;
+      } else if (state.conflictPawnPosition < 0) {
+        chooserId = p1Id;
+      }
+      state.currentPhase = "choose_start_player";
+      state.activePlayerId = chooserId;
+      state.actionLog.push(
+        `\u{1F4DC} End of Age ${state.currentAge - 1}! ${state.players[chooserId].name} chooses who plays first in Age ${state.currentAge === 2 ? "II" : "III"}.`
+      );
+      return state;
+    } else {
+      const scores = calculateFinalScores(state);
+      const p1Score = scores[p1Id].total;
+      const p2Score = scores[p2Id].total;
+      let winnerId = p1Score > p2Score ? p1Id : p2Id;
+      if (p1Score === p2Score) {
+        winnerId = scores[p1Id].civilian >= scores[p2Id].civilian ? p1Id : p2Id;
+      }
+      state.currentPhase = "game_over";
+      state.winner = {
+        userId: winnerId,
+        reason: "civilian",
+        scores
+      };
+      state.actionLog.push(
+        `\u{1F3C6} Game Over (Civilian Victory)! ${state.players[winnerId].name} wins (${p1Score} vs ${p2Score} VP)!`
+      );
+      return state;
+    }
+  }
+  state.activePlayerId = state.activePlayerId === p1Id ? p2Id : p1Id;
+  return state;
 }
 
 // server/src/index.ts
@@ -2475,7 +5209,7 @@ function createArenaServer(options) {
         name: "ArenaBoard Real-Time Game Server",
         service: "Backend & WebSocket Service for Render",
         status: "online",
-        version: "v1.4.5",
+        version: "v1.6.0",
         frontendOrigin: CLIENT_ORIGIN,
         timestamp: (/* @__PURE__ */ new Date()).toISOString()
       });
@@ -2493,8 +5227,8 @@ function createArenaServer(options) {
   });
   app2.get("/api/version", (_req, res) => {
     res.json({
-      version: "v1.4.5",
-      buildId: "bld-20260929-catan-res-colors-v142",
+      version: "v1.6.0",
+      buildId: "bld-20260930154500-v160-swd",
       timestamp: (/* @__PURE__ */ new Date()).toISOString(),
       uptime: Math.round(process.uptime()),
       environment: process.env.NODE_ENV || "production",
@@ -2504,8 +5238,16 @@ function createArenaServer(options) {
   const connectedUsers = /* @__PURE__ */ new Map();
   const tables = /* @__PURE__ */ new Map();
   const botTimeouts = /* @__PURE__ */ new Map();
+  function sanitizeTable(table) {
+    if (table.ttrState?.routes && table.ttrState.routes["smyrna-erzurum"]) {
+      delete table.ttrState.routes["smyrna-erzurum"];
+    }
+  }
   function getPublicLobbies() {
-    return Array.from(tables.values()).filter((t) => !t.isPrivate);
+    return Array.from(tables.values()).filter((t) => {
+      sanitizeTable(t);
+      return !t.isPrivate;
+    });
   }
   function broadcastLobbyList() {
     io.emit("lobby:list", getPublicLobbies());
@@ -2645,7 +5387,7 @@ function createArenaServer(options) {
           }
           const maxPlayers = data.maxPlayers || (data.gameId === "catan" ? 4 : data.gameId === "ticket-to-ride" ? 5 : 2);
           const isAllBots = players.length >= 2 && !data.hasHumanSlots;
-          const initialStatus = data.gameId === "catan" && isAllBots ? "in-game" : "waiting";
+          const initialStatus = isAllBots ? "in-game" : "waiting";
           const targetVP = data.targetVictoryPoints || (data.gameId === "catan" ? 10 : void 0);
           const newTable = {
             id: roomId,
@@ -2687,6 +5429,21 @@ function createArenaServer(options) {
             newTable.catanState = createInitialCatanGame(playerConfigs, targetVP || 10);
           } else if (data.gameId === "ticket-to-ride" && isAllBots) {
             newTable.ttrState = createInitialTTRGame(newTable.players.map((p) => p.userId));
+          } else if (data.gameId === "seven-wonders-duel" && isAllBots) {
+            newTable.gameStartTime = Date.now();
+            const p1 = {
+              id: players[0].userId,
+              name: players[0].username,
+              avatar: players[0].avatar,
+              isBot: !!players[0].isBot
+            };
+            const p2 = {
+              id: players[1].userId,
+              name: players[1].username,
+              avatar: players[1].avatar,
+              isBot: !!players[1].isBot
+            };
+            newTable.sevenWondersState = createInitialSWDGame(p1, p2);
           }
           tables.set(roomId, newTable);
           socket.join(roomId);
@@ -2796,6 +5553,29 @@ function createArenaServer(options) {
           senderName: "Arena System",
           senderAvatar: "\u{1F682}",
           text: `Ticket to Ride has started! Claim your routes and build your train empire.`,
+          timestamp: Date.now(),
+          isSystem: true
+        });
+      } else if (table.gameId === "seven-wonders-duel") {
+        const p1 = {
+          id: table.players[0].userId,
+          name: table.players[0].username,
+          avatar: table.players[0].avatar,
+          isBot: !!table.players[0].isBot
+        };
+        const p2 = {
+          id: table.players[1].userId,
+          name: table.players[1].username,
+          avatar: table.players[1].avatar,
+          isBot: !!table.players[1].isBot
+        };
+        table.sevenWondersState = createInitialSWDGame(p1, p2);
+        table.messages.push({
+          id: "msg_" + Date.now(),
+          senderId: "system",
+          senderName: "Arena System",
+          senderAvatar: "\u{1F3DB}\uFE0F",
+          text: `7 Wonders - Duel has begun! Wonder selection phase is active.`,
           timestamp: Date.now(),
           isSystem: true
         });
@@ -2970,12 +5750,26 @@ function createArenaServer(options) {
       "ticket-to-ride:action",
       (data) => {
         try {
-          if (!data || !data.tableId || !data.action) return;
+          console.log("[TTR] Received raw event:", data);
+          if (!data || !data.tableId || !data.action) {
+            console.log("[TTR] Rejected: missing data fields");
+            return;
+          }
           const user = connectedUsers.get(socket.id);
           const table = tables.get(data.tableId);
-          if (!table || !user || !table.ttrState) return;
-          if (table.status !== "in-game") return;
-          table.ttrState = processTTRAction(table.ttrState, user.id, data.action);
+          if (!table || !user || !table.ttrState) {
+            console.log("[TTR] Rejected: missing table, user, or ttrState", { hasTable: !!table, hasUser: !!user, hasTTRState: !!table?.ttrState });
+            return;
+          }
+          const isInitialDraft = table.ttrState.turnState.state === "initial_draft";
+          if (table.status !== "in-game" && !isInitialDraft) {
+            console.log("[TTR] Rejected: table status is", table.status, "and not initial draft");
+            return;
+          }
+          const actingUserId = data.forUserId && table.hostId === user.id ? data.forUserId : user.id;
+          console.log("[TTR] Processing action:", data.action.type, "state:", table.ttrState.turnState.state, "actingUser:", actingUserId, "currentPlayer:", table.ttrState.playerOrder[table.ttrState.currentPlayerIndex]);
+          table.ttrState = processTTRAction(table.ttrState, actingUserId, data.action);
+          sanitizeTable(table);
           io.to(table.id).emit("table:ttr_sync", {
             gameState: table.ttrState
           });
@@ -3011,6 +5805,58 @@ function createArenaServer(options) {
         } catch (err) {
           console.error("Error handling ticket-to-ride:action:", err);
           socket.emit("table:ttr_error", { message: err.message });
+        }
+      }
+    );
+    socket.on(
+      "seven-wonders-duel:action",
+      (data) => {
+        try {
+          if (!data || !data.tableId || !data.action) return;
+          const user = connectedUsers.get(socket.id);
+          const table = tables.get(data.tableId);
+          if (!table || !user || !table.sevenWondersState) return;
+          const actingUserId = data.forUserId && table.hostId === user.id ? data.forUserId : user.id;
+          table.sevenWondersState = processSWDAction(
+            table.sevenWondersState,
+            actingUserId,
+            data.action
+          );
+          io.to(table.id).emit("table:swd_sync", {
+            gameState: table.sevenWondersState
+          });
+          if (table.sevenWondersState.winner && table.status !== "finished") {
+            table.status = "finished";
+            const winnerInfo = table.sevenWondersState.winner;
+            const winningPlayer = table.players.find((p) => p.userId === winnerInfo.userId);
+            const reason = winnerInfo.reason;
+            const reasonDesc = reason === "military" ? "Military Supremacy" : reason === "science" ? "Scientific Supremacy" : "Civilian Victory";
+            table.winner = {
+              id: winningPlayer ? winningPlayer.userId : user.id,
+              name: winningPlayer ? winningPlayer.username : user.username,
+              avatar: winningPlayer ? winningPlayer.avatar : "\u{1F3DB}\uFE0F",
+              timeSeconds: Math.round(
+                (Date.now() - (table.gameStartTime || Date.now())) / 1e3
+              ),
+              role: `Master Builder (${reasonDesc})`
+            };
+            table.messages.push({
+              id: "msg_" + Date.now(),
+              senderId: "system",
+              senderName: "Arena System",
+              senderAvatar: "\u{1F3C6}",
+              text: `Empire Ascendant! ${table.winner.name} triumphed in 7 Wonders Duel via ${reasonDesc}!`,
+              timestamp: Date.now(),
+              isSystem: true
+            });
+            io.to(table.id).emit("table:game_over", {
+              table,
+              winner: table.winner
+            });
+            broadcastLobbyList();
+          }
+        } catch (err) {
+          console.error("Error handling seven-wonders-duel:action:", err);
         }
       }
     );

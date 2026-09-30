@@ -10,6 +10,12 @@ interface SWDBoardProps {
   selectableTokens?: number[];
 }
 
+// Maps a conflict position (-9..+9) to a top% on the 740px board.
+// Track runs from ~4.8% (pos=-9, p2 capital) to ~91.2% (pos=+9, p1 capital).
+function trackTop(pos: number): string {
+  return `${4.8 + ((pos + 9) / 18) * 86.4}%`;
+}
+
 export const SWDBoard: React.FC<SWDBoardProps> = ({
   state,
   onSelectToken,
@@ -18,11 +24,9 @@ export const SWDBoard: React.FC<SWDBoardProps> = ({
   const p1Name = state.players[state.playerOrder[0]]?.name || 'Player 1';
   const p2Name = state.players[state.playerOrder[1]]?.name || 'Player 2';
 
-  // Conflict Pawn vertical position:
-  // -9 (p2 capital) -> 0 (center) -> +9 (p1 capital)
-  // Normalized 0..1: (pos + 9) / 18
-  const pawnProgress = (state.conflictPawnPosition + 9) / 18;
-  const pawnTopPercent = 4.8 + pawnProgress * 86.4;
+  // Progress token slots: evenly spaced across the 5 positions on the right column
+  // Corresponding to conflict positions -6, -3, 0, +3, +6
+  const progressSlotPositions = [-6, -3, 0, 3, 6];
 
   return (
     <div className="flex flex-col items-center select-none">
@@ -48,8 +52,9 @@ export const SWDBoard: React.FC<SWDBoardProps> = ({
       </div>
 
       {/* Main Conflict Board from pterodactylstfw repository */}
+      {/* ponytail: overflow-visible required so token tooltips escape the board div */}
       <div
-        className="relative shadow-2xl rounded-2xl overflow-hidden border-2 border-amber-950/70 bg-stone-950"
+        className="relative shadow-2xl rounded-2xl border-2 border-amber-950/70 bg-stone-950 overflow-visible"
         style={{
           width: '240px',
           height: '740px',
@@ -58,33 +63,25 @@ export const SWDBoard: React.FC<SWDBoardProps> = ({
           backgroundRepeat: 'no-repeat',
         }}
       >
-        {/* Plunder / Military Loss Tokens (-6, -3, +3, +6) */}
+        {/* Plunder / Military Loss Tokens at ±3 and ±6 on the left of the track */}
         {state.militaryTokens.map((tok) => {
           if (tok.isTaken) return null;
-          // Config for placement alongside military track
-          const posMap: Record<number, { top: string; left: string; width: string; height: string; img: string }> = {
-            '-6': { top: '16.5%', left: '7%', width: '38px', height: '86px', img: SWD_BOARD_IMAGES.loot5 },
-            '-3': { top: '30.5%', left: '8%', width: '32px', height: '74px', img: SWD_BOARD_IMAGES.loot2 },
-            '3': { top: '61.2%', left: '8%', width: '32px', height: '74px', img: SWD_BOARD_IMAGES.loot2 },
-            '6': { top: '75.2%', left: '7%', width: '38px', height: '86px', img: SWD_BOARD_IMAGES.loot5 },
-          };
-          const cfg = posMap[tok.position];
-          if (!cfg) return null;
-
+          const isLarge = tok.position === -6 || tok.position === 6;
           return (
             <div
               key={tok.position}
               title={`Plunder Token: Opponent loses ${tok.value} coins when crossed`}
               className="absolute z-10 transition-transform hover:scale-105"
               style={{
-                top: cfg.top,
-                left: cfg.left,
-                width: cfg.width,
-                height: cfg.height,
+                top: trackTop(tok.position),
+                left: isLarge ? '5%' : '8%',
+                width: isLarge ? '38px' : '32px',
+                height: isLarge ? '86px' : '74px',
+                transform: 'translateY(-50%)',
               }}
             >
               <img
-                src={cfg.img}
+                src={isLarge ? SWD_BOARD_IMAGES.loot5 : SWD_BOARD_IMAGES.loot2}
                 alt={`Loot ${tok.value}`}
                 className="w-full h-full object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]"
               />
@@ -92,12 +89,12 @@ export const SWDBoard: React.FC<SWDBoardProps> = ({
           );
         })}
 
-        {/* Military Lead Pawn (slidable along the track) */}
+        {/* Military Lead Pawn — z-10 so token tooltips (z-50) render above it */}
         <div
-          className="absolute z-20 transition-all duration-500 ease-out pointer-events-none"
+          className="absolute z-10 transition-all duration-500 ease-out pointer-events-none"
           style={{
-            top: `${pawnTopPercent}%`,
-            left: '27.5%',
+            top: trackTop(state.conflictPawnPosition),
+            left: '28%',
             width: '52px',
             height: '26px',
             transform: 'translateY(-50%)',
@@ -110,30 +107,28 @@ export const SWDBoard: React.FC<SWDBoardProps> = ({
           />
         </div>
 
-        {/* 5 Board Progress Tokens in the right-column slots */}
-        <div
-          className="absolute flex flex-col items-center justify-between z-15"
-          style={{
-            top: '23%',
-            bottom: '19%',
-            left: '61%',
-            width: '60px',
-          }}
-        >
-          {state.boardProgressTokens.map((tokenId) => {
-            const isSelectable = selectableTokens?.includes(tokenId);
-            return (
-              <div key={tokenId} className="relative group my-auto">
-                <SWDCard
-                  tokenId={tokenId}
-                  size="small"
-                  isAvailable={isSelectable}
-                  onClick={() => onSelectToken?.(tokenId)}
-                />
-              </div>
-            );
-          })}
-        </div>
+        {/* 5 Board Progress Tokens — z-50 so their tooltips show above everything */}
+        {state.boardProgressTokens.map((tokenId, index) => {
+          const isSelectable = selectableTokens?.includes(tokenId);
+          return (
+            <div
+              key={tokenId}
+              className="absolute z-50"
+              style={{
+                top: trackTop(progressSlotPositions[index]),
+                left: '72%',
+                transform: 'translate(-50%, -50%)',
+              }}
+            >
+              <SWDCard
+                tokenId={tokenId}
+                size="small"
+                isAvailable={isSelectable}
+                onClick={() => onSelectToken?.(tokenId)}
+              />
+            </div>
+          );
+        })}
       </div>
 
       {/* Progress Tokens Quick Reference Legend */}

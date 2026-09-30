@@ -1,0 +1,68 @@
+--- src/components/SevenWondersDuel/SWDCard.tsx
++++ src/components/SevenWondersDuel/SWDCard.tsx
+@@ -156,6 +156,7 @@
+   };
+ 
+   return (
++    <div className="relative group/card flex items-center justify-center">
+     <div
+       onClick={isAvailable ? onClick : undefined}
+       title={
+@@ -191,6 +192,57 @@
+         <div className="absolute inset-0 bg-amber-400/10 pointer-events-none animate-pulse" />
+       )}
+     </div>
++
++    {/* Detailed Tooltip on Hover */}
++    {showTooltip && isFaceUp && (
++      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 sm:w-56 p-3 rounded-xl bg-slate-950/95 backdrop-blur-sm border border-slate-700 shadow-[0_0_30px_rgba(0,0,0,0.8)] opacity-0 group-hover/card:opacity-100 pointer-events-none transition-opacity duration-200 z-[100] flex flex-col gap-2">
++        {imgUrl && (
++          <div className="w-full aspect-[4/6] rounded-lg overflow-hidden border border-slate-800 shadow-inner">
++            <img src={imgUrl} alt={b.name} className="w-full h-full object-cover" loading="lazy" />
++          </div>
++        )}
++        <div className="text-center font-extrabold text-slate-100 text-sm font-['Fredoka']">{b.name}</div>
++        
++        <div className="space-y-1.5 text-xs">
++          {/* Cost */}
++          {(b.cost && Object.keys(b.cost).length > 0) ? (
++            <div className="flex flex-wrap items-center justify-center gap-1">
++              <span className="text-[10px] uppercase font-bold text-slate-500">Cost:</span>
++              {b.cost?.wood ? <span className="px-1 py-0.5 rounded bg-amber-950/80 text-amber-200 border border-amber-800/60 text-[10px] font-bold">🪵 {b.cost.wood}</span> : null}
++              {b.cost?.clay ? <span className="px-1 py-0.5 rounded bg-orange-950/80 text-orange-200 border border-orange-800/60 text-[10px] font-bold">🧱 {b.cost.clay}</span> : null}
++              {b.cost?.stone ? <span className="px-1 py-0.5 rounded bg-stone-800 text-stone-200 border border-stone-600/60 text-[10px] font-bold">🪨 {b.cost.stone}</span> : null}
++              {b.cost?.glass ? <span className="px-1 py-0.5 rounded bg-cyan-950/80 text-cyan-200 border border-cyan-800/60 text-[10px] font-bold">🧪 {b.cost.glass}</span> : null}
++              {b.cost?.papyrus ? <span className="px-1 py-0.5 rounded bg-yellow-950/80 text-yellow-200 border border-yellow-800/60 text-[10px] font-bold">📜 {b.cost.papyrus}</span> : null}
++              {b.cost?.coins ? <span className="px-1 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold">🪙 {b.cost.coins}</span> : null}
++            </div>
++          ) : (
++            <div className="text-center text-[10px] uppercase font-bold text-slate-500">Free</div>
++          )}
++
++          {/* Reward */}
++          <div className="flex flex-wrap items-center justify-center gap-1 pt-1 border-t border-slate-800">
++            <span className="text-[10px] uppercase font-bold text-slate-500">Reward:</span>
++            {b.victoryPoints ? <span className="text-amber-300 font-bold px-1 text-[10px]">🏆 +{b.victoryPoints} VP</span> : null}
++            {b.military ? <span className="text-rose-400 font-bold px-1 text-[10px]">🛡️ +{b.military}</span> : null}
++            {b.coins ? <span className="text-amber-400 font-bold px-1 text-[10px]">🪙 +{b.coins}</span> : null}
++            {b.scientificSymbol ? <span className="text-emerald-300 font-bold px-1 text-[10px]">🔬 #{b.scientificSymbol}</span> : null}
++            
++            {/* Resources produced */}
++            {b.resources?.wood ? <span className="px-1 py-0.5 rounded bg-amber-950/80 text-amber-200 border border-amber-800/60 text-[10px] font-bold">🪵 {b.resources.wood}</span> : null}
++            {b.resources?.clay ? <span className="px-1 py-0.5 rounded bg-orange-950/80 text-orange-200 border border-orange-800/60 text-[10px] font-bold">🧱 {b.resources.clay}</span> : null}
++            {b.resources?.stone ? <span className="px-1 py-0.5 rounded bg-stone-800 text-stone-200 border border-stone-600/60 text-[10px] font-bold">🪨 {b.resources.stone}</span> : null}
++            {b.resources?.glass ? <span className="px-1 py-0.5 rounded bg-cyan-950/80 text-cyan-200 border border-cyan-800/60 text-[10px] font-bold">🧪 {b.resources.glass}</span> : null}
++            {b.resources?.papyrus ? <span className="px-1 py-0.5 rounded bg-yellow-950/80 text-yellow-200 border border-yellow-800/60 text-[10px] font-bold">📜 {b.resources.papyrus}</span> : null}
++            
++            {b.resourceChoice && (
++              <span className="px-1 py-0.5 rounded bg-emerald-950/80 text-emerald-200 border border-emerald-800/60 text-[10px] font-bold">
++                ✨ {b.resourceChoice.join('/')}
++              </span>
++            )}
++          </div>
++        </div>
++      </div>
++    )}
++    </div>
+   );
+ };

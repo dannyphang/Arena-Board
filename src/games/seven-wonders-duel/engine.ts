@@ -572,11 +572,12 @@ export function processSWDAction(state: SWDGameState, playerId: string, action: 
         nextState.actionLog.push(`${nextState.players[p1Id].name} received Wonder “${WONDERS[lastWonder].name}”.`);
 
         // Setup Round 2
-        const allRemainingWonders = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].filter(
+        let allRemainingWonders = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].filter(
           (id) =>
             !nextState.players[p1Id].wonders.some((w) => w.id === id) &&
             !nextState.players[p2Id].wonders.some((w) => w.id === id)
         );
+        allRemainingWonders = allRemainingWonders.sort(() => Math.random() - 0.5);
         nextState.wonderDraftRound = 2;
         nextState.wonderDraftPool = allRemainingWonders.slice(0, 4);
         nextState.wonderDraftStep = 0;

@@ -102,8 +102,23 @@ export const SWDWonderDraft: React.FC<SWDWonderDraftProps> = ({
                     {wonder.destroyOpponentGrey && <span className="text-slate-400 font-bold">⚡ Destroy opponent grey • </span>}
                   </div>
 
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                    <span className="text-[10px] uppercase font-bold text-slate-500 mr-0.5">Cost:</span>
+                    {wonder.cost?.wood ? <span className="px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-200 border border-amber-800/60 text-[10px] font-bold">🪵 {wonder.cost.wood}</span> : null}
+                    {wonder.cost?.clay ? <span className="px-1.5 py-0.5 rounded bg-orange-950/80 text-orange-200 border border-orange-800/60 text-[10px] font-bold">🧱 {wonder.cost.clay}</span> : null}
+                    {wonder.cost?.stone ? <span className="px-1.5 py-0.5 rounded bg-stone-800 text-stone-200 border border-stone-600/60 text-[10px] font-bold">🪨 {wonder.cost.stone}</span> : null}
+                    {wonder.cost?.glass ? <span className="px-1.5 py-0.5 rounded bg-cyan-950/80 text-cyan-200 border border-cyan-800/60 text-[10px] font-bold">🧪 {wonder.cost.glass}</span> : null}
+                    {wonder.cost?.papyrus ? <span className="px-1.5 py-0.5 rounded bg-yellow-950/80 text-yellow-200 border border-yellow-800/60 text-[10px] font-bold">📜 {wonder.cost.papyrus}</span> : null}
+                  </div>
+
                   {isMyTurn && (
-                    <button className="w-full py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs shadow-md shadow-amber-500/20 transition cursor-pointer">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDraftWonder(wid);
+                      }}
+                      className="w-full py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs shadow-md shadow-amber-500/20 transition cursor-pointer"
+                    >
                       Select {wonder.name}
                     </button>
                   )}

@@ -14,14 +14,22 @@ export interface AppVersionInfo {
 }
 
 export const APP_VERSION_INFO: AppVersionInfo = {
-  version: 'v1.6.0',
-  releaseDate: '2026-09-30 15:45 UTC',
-  buildId: 'bld-20260930154500-v160-swd',
+  version: 'v1.6.1',
+  releaseDate: '2026-09-30 17:01 UTC',
+  buildId: 'bld-20260930170148-v161',
   environment: typeof window !== 'undefined' ? window.location.hostname : 'production',
   latestPrompt: "Add 7 Wonders - Duel with official spritesheets, draft pyramid, military track, and solo/multiplayer arena",
   promptDescription:
     "Added 7 Wonders - Duel with official spritesheets, draft pyramid, military track, and solo/multiplayer arena",
   changeLog: [
+    {
+      version: 'v1.6.1',
+      date: '2026-09-30',
+      prompt: "Add initial tests and update SWDCard component with detailed tooltips",
+      highlights: [
+        "Add initial tests and update SWDCard component with detailed tooltips\n\n- Created test.js for Seven Wonders Duel game logic to validate initial game state and action processing.\n- Added types.js to define module exports for the Seven Wonders Duel game.\n- Implemented test-swd.js and test-swd.ts for testing game functionality in JavaScript and TypeScript.\n- Enhanced SWDCard component with a detailed tooltip that displays card costs, rewards, and resources on hover."
+      ],
+    },
     {
       version: 'v1.6.0',
       date: '2026-09-30',

@@ -98,6 +98,7 @@ export const SevenWondersDuelArena: React.FC<SevenWondersDuelArenaProps> = ({
       socket.emit('seven-wonders-duel:action', {
         tableId: table.id,
         action,
+        forUserId: gameState.activePlayerId,
       });
     }
   };
@@ -237,7 +238,7 @@ export const SevenWondersDuelArena: React.FC<SevenWondersDuelArenaProps> = ({
             {/* Central Board & Draftpool Section */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
               {/* Left Column: Military Conflict Track & Board Tokens */}
-              <div className="lg:col-span-4 xl:col-span-3 flex justify-center bg-slate-900/60 border border-slate-800 rounded-2xl p-3 shadow-xl">
+              <div className="lg:col-span-4 xl:col-span-3 flex justify-center bg-slate-900/60 border border-slate-800 rounded-2xl p-3 shadow-xl relative z-20">
                 <SWDBoard
                   state={gameState}
                   selectableTokens={
