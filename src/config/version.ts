@@ -14,14 +14,22 @@ export interface AppVersionInfo {
 }
 
 export const APP_VERSION_INFO: AppVersionInfo = {
-  version: 'v1.6.1',
-  releaseDate: '2026-09-30 17:01 UTC',
-  buildId: 'bld-20260930170148-v161',
+  version: 'v1.6.2',
+  releaseDate: '2026-09-30 17:48 UTC',
+  buildId: 'bld-20260930174809-v162',
   environment: typeof window !== 'undefined' ? window.location.hostname : 'production',
   latestPrompt: "Add 7 Wonders - Duel with official spritesheets, draft pyramid, military track, and solo/multiplayer arena",
   promptDescription:
     "Added 7 Wonders - Duel with official spritesheets, draft pyramid, military track, and solo/multiplayer arena",
   changeLog: [
+    {
+      version: 'v1.6.2',
+      date: '2026-09-30',
+      prompt: "Add new icon images for Papyrus, Stone, and Wood",
+      highlights: [
+        "Add new icon images for Papyrus, Stone, and Wood\n\n- Introduced papyrus.png to represent papyrus icon.\n- Added stone.png for stone icon representation.\n- Included wood.png to depict wood icon."
+      ],
+    },
     {
       version: 'v1.6.1',
       date: '2026-09-30',

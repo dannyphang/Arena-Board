@@ -66,7 +66,7 @@ export function createArenaServer(options?: { isStandalone?: boolean }) {
         name: 'ArenaBoard Real-Time Game Server',
         service: 'Backend & WebSocket Service for Render',
         status: 'online',
-        version: 'v1.6.1',
+        version: 'v1.6.2',
         frontendOrigin: CLIENT_ORIGIN,
         timestamp: new Date().toISOString(),
       });
@@ -89,7 +89,7 @@ export function createArenaServer(options?: { isStandalone?: boolean }) {
   // Version endpoint
   app.get('/api/version', (_req, res) => {
     res.json({
-      version: 'v1.6.1',
+      version: 'v1.6.2',
       buildId: 'bld-20260930154500-v160-swd',
       timestamp: new Date().toISOString(),
       uptime: Math.round(process.uptime()),
