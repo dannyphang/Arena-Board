@@ -14,6 +14,7 @@ import { GameArena } from './components/GeniusSquare/GameArena';
 import { MrJackArena } from './components/MrJack/MrJackArena';
 import { CatanArena } from './components/Catan/CatanArena';
 import { TicketToRideArena } from './components/TicketToRide/TicketToRideArena';
+import { SevenWondersDuelArena } from './components/SevenWondersDuel/SevenWondersDuelArena';
 import { AppVersionModal } from './components/AppVersionModal';
 import { APP_VERSION_INFO } from './config/version';
 
@@ -27,7 +28,7 @@ export default function App() {
 
   // Modals
   const [isRulesOpen, setIsRulesOpen] = useState(false);
-  const [rulesGameId, setRulesGameId] = useState<'genius-square' | 'mr-jack' | 'catan' | 'ticket-to-ride' | undefined>(undefined);
+  const [rulesGameId, setRulesGameId] = useState<'genius-square' | 'mr-jack' | 'catan' | 'ticket-to-ride' | 'seven-wonders-duel' | undefined>(undefined);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isCreateTableOpen, setIsCreateTableOpen] = useState(false);
@@ -122,6 +123,13 @@ export default function App() {
       });
     };
 
+    const handleSWDSync = (data: { gameState: any }) => {
+      setActiveTable((prev) => {
+        if (!prev) return null;
+        return { ...prev, sevenWondersState: data.gameState };
+      });
+    };
+
     const handleTTRError = (data: { message: string }) => {
       alert(`Ticket to Ride Error: ${data.message}`);
     };
@@ -135,6 +143,7 @@ export default function App() {
     socket.on('table:mrjack_sync', handleMrJackSync);
     socket.on('table:catan_sync', handleCatanSync);
     socket.on('table:ttr_sync', handleTTRSync);
+    socket.on('table:swd_sync', handleSWDSync);
     socket.on('table:ttr_error', handleTTRError);
 
     socket.emit('lobby:get');
@@ -149,6 +158,7 @@ export default function App() {
       socket.off('table:mrjack_sync', handleMrJackSync);
       socket.off('table:catan_sync', handleCatanSync);
       socket.off('table:ttr_sync', handleTTRSync);
+      socket.off('table:swd_sync', handleSWDSync);
       socket.off('table:ttr_error', handleTTRError);
     };
   }, [user, socket]);
@@ -280,6 +290,8 @@ export default function App() {
               ? 'Mr. Jack in London'
               : activeTable.gameId === 'ticket-to-ride'
               ? 'Ticket to Ride: Europe'
+              : activeTable.gameId === 'seven-wonders-duel'
+              ? '7 Wonders - Duel'
               : 'Genius Square'
             : soloGameId === 'catan'
             ? 'Catan (Solo)'
@@ -287,13 +299,15 @@ export default function App() {
             ? 'Mr. Jack (Solo)'
             : soloGameId === 'ticket-to-ride'
             ? 'Ticket to Ride: Europe (Solo)'
+            : soloGameId === 'seven-wonders-duel'
+            ? '7 Wonders - Duel (Solo)'
             : 'Genius Square (Solo)'
         }
         onOpenRules={() => {
           const currentGame = activeTable
-            ? (activeTable.gameId as 'genius-square' | 'mr-jack' | 'catan' | 'ticket-to-ride')
+            ? (activeTable.gameId as 'genius-square' | 'mr-jack' | 'catan' | 'ticket-to-ride' | 'seven-wonders-duel')
             : isSoloPractice
-            ? (soloGameId as 'genius-square' | 'mr-jack' | 'catan' | 'ticket-to-ride')
+            ? (soloGameId as 'genius-square' | 'mr-jack' | 'catan' | 'ticket-to-ride' | 'seven-wonders-duel')
             : undefined;
           setRulesGameId(currentGame);
           setIsRulesOpen(true);
@@ -306,7 +320,19 @@ export default function App() {
       {/* Main Content View */}
       <main className="flex-1">
         {isInGame ? (
-          activeTable?.gameId === 'catan' || (!activeTable && soloGameId === 'catan') ? (
+          activeTable?.gameId === 'seven-wonders-duel' || (!activeTable && soloGameId === 'seven-wonders-duel') ? (
+            <SevenWondersDuelArena
+              user={user}
+              table={activeTable}
+              isSoloPractice={isSoloPractice}
+              onExit={handleLeaveGame}
+              onOpenRules={() => {
+                setRulesGameId('seven-wonders-duel');
+                setIsRulesOpen(true);
+              }}
+              onRecordMatch={handleRecordMatch}
+            />
+          ) : activeTable?.gameId === 'catan' || (!activeTable && soloGameId === 'catan') ? (
             <CatanArena
               user={user}
               table={activeTable}

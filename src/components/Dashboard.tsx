@@ -75,7 +75,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <div className="flex flex-wrap items-center gap-2" />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
           {/* Game 1: Genius Square */}
           <div
             onClick={() => {
@@ -230,6 +230,53 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </span>
               <span className="flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5" /> ~25 mins
+              </span>
+            </div>
+          </div>
+
+          {/* Game 5: 7 Wonders - Duel */}
+          <div
+            onClick={() => {
+              sounds.playPop();
+              setSelectedGame('seven-wonders-duel');
+              onOpenCreateTable('seven-wonders-duel');
+            }}
+            className="p-5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between bg-slate-900/80 border-slate-800 hover:border-amber-400 hover:bg-slate-900 hover:shadow-xl hover:shadow-amber-500/10 group"
+          >
+            {/* Background Cover Overlay from repo */}
+            <div className="absolute inset-0 opacity-25 group-hover:opacity-40 transition-opacity duration-300 pointer-events-none">
+              <img
+                src="/swd/game_banner.jpg"
+                alt="7 Wonders - Duel"
+                className="w-full h-full object-cover object-center"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/70 to-transparent" />
+            </div>
+
+            <div className="relative z-10 flex items-start justify-between mb-3">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-600 via-orange-600 to-purple-800 flex items-center justify-center text-amber-300 shadow-md shadow-amber-500/20 border border-amber-400/30 group-hover:scale-105 transition overflow-hidden">
+                <img src="/swd/game_box.png" alt="7 Wonders Duel" className="w-full h-full object-cover" />
+              </div>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                Active & Playable
+              </span>
+            </div>
+
+            <div className="relative z-10">
+              <h3 className="font-extrabold text-base text-slate-100 mb-1 font-['Fredoka'] group-hover:text-amber-300 transition">
+                7 Wonders - Duel
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed mb-3">
+                Epic 2-player civilization clash. Draft wonders, construct age cards, and vie for military or scientific supremacy!
+              </p>
+            </div>
+
+            <div className="relative z-10 flex items-center justify-between text-[11px] text-slate-400 pt-3 border-t border-slate-800/80">
+              <span className="flex items-center gap-1 font-semibold text-amber-400">
+                <Users className="w-3.5 h-3.5" /> 2 Players / Solo
+              </span>
+              <span className="flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5" /> ~20 mins
               </span>
             </div>
           </div>

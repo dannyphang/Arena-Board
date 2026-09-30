@@ -12,6 +12,8 @@ import { createInitialCatanGame } from '../../src/games/catan/engine';
 import { CatanGameState } from '../../src/games/catan/types';
 import { createInitialTTRGame, processTTRAction } from '../../src/games/ticket-to-ride/engine';
 import { TTRGameState, TTRAction } from '../../src/games/ticket-to-ride/types';
+import { createInitialSWDGame, processSWDAction } from '../../src/games/seven-wonders-duel/engine';
+import { SWDGameState, SWDAction } from '../../src/games/seven-wonders-duel/types';
 
 export function createArenaServer(options?: { isStandalone?: boolean }) {
   const app = express();
@@ -64,7 +66,7 @@ export function createArenaServer(options?: { isStandalone?: boolean }) {
         name: 'ArenaBoard Real-Time Game Server',
         service: 'Backend & WebSocket Service for Render',
         status: 'online',
-        version: 'v1.5.2',
+        version: 'v1.6.0',
         frontendOrigin: CLIENT_ORIGIN,
         timestamp: new Date().toISOString(),
       });
@@ -87,8 +89,8 @@ export function createArenaServer(options?: { isStandalone?: boolean }) {
   // Version endpoint
   app.get('/api/version', (_req, res) => {
     res.json({
-      version: 'v1.5.2',
-      buildId: 'bld-20260929-catan-res-colors-v142',
+      version: 'v1.6.0',
+      buildId: 'bld-20260930154500-v160-swd',
       timestamp: new Date().toISOString(),
       uptime: Math.round(process.uptime()),
       environment: process.env.NODE_ENV || 'production',
@@ -332,6 +334,21 @@ export function createArenaServer(options?: { isStandalone?: boolean }) {
             newTable.catanState = createInitialCatanGame(playerConfigs, targetVP || 10);
           } else if (data.gameId === 'ticket-to-ride' && isAllBots) {
             newTable.ttrState = createInitialTTRGame(newTable.players.map((p) => p.userId));
+          } else if (data.gameId === 'seven-wonders-duel' && isAllBots) {
+            newTable.gameStartTime = Date.now();
+            const p1 = {
+              id: players[0].userId,
+              name: players[0].username,
+              avatar: players[0].avatar,
+              isBot: !!players[0].isBot,
+            };
+            const p2 = {
+              id: players[1].userId,
+              name: players[1].username,
+              avatar: players[1].avatar,
+              isBot: !!players[1].isBot,
+            };
+            newTable.sevenWondersState = createInitialSWDGame(p1, p2);
           }
 
           tables.set(roomId, newTable);
@@ -453,6 +470,29 @@ export function createArenaServer(options?: { isStandalone?: boolean }) {
           senderName: 'Arena System',
           senderAvatar: '🚂',
           text: `Ticket to Ride has started! Claim your routes and build your train empire.`,
+          timestamp: Date.now(),
+          isSystem: true,
+        });
+      } else if (table.gameId === 'seven-wonders-duel') {
+        const p1 = {
+          id: table.players[0].userId,
+          name: table.players[0].username,
+          avatar: table.players[0].avatar,
+          isBot: !!table.players[0].isBot,
+        };
+        const p2 = {
+          id: table.players[1].userId,
+          name: table.players[1].username,
+          avatar: table.players[1].avatar,
+          isBot: !!table.players[1].isBot,
+        };
+        table.sevenWondersState = createInitialSWDGame(p1, p2);
+        table.messages.push({
+          id: 'msg_' + Date.now(),
+          senderId: 'system',
+          senderName: 'Arena System',
+          senderAvatar: '🏛️',
+          text: `7 Wonders - Duel has begun! Wonder selection phase is active.`,
           timestamp: Date.now(),
           isSystem: true,
         });
@@ -711,6 +751,72 @@ export function createArenaServer(options?: { isStandalone?: boolean }) {
         } catch (err: any) {
           console.error('Error handling ticket-to-ride:action:', err);
           socket.emit('table:ttr_error', { message: err.message });
+        }
+      }
+    );
+
+    socket.on(
+      'seven-wonders-duel:action',
+      (data: { tableId: string; action: SWDAction; forUserId?: string }) => {
+        try {
+          if (!data || !data.tableId || !data.action) return;
+          const user = connectedUsers.get(socket.id);
+          const table = tables.get(data.tableId);
+          if (!table || !user || !table.sevenWondersState) return;
+
+          const actingUserId =
+            data.forUserId && table.hostId === user.id ? data.forUserId : user.id;
+
+          table.sevenWondersState = processSWDAction(
+            table.sevenWondersState,
+            actingUserId,
+            data.action
+          );
+
+          io.to(table.id).emit('table:swd_sync', {
+            gameState: table.sevenWondersState,
+          });
+
+          if (table.sevenWondersState.winner && table.status !== 'finished') {
+            table.status = 'finished';
+            const winnerInfo = table.sevenWondersState.winner;
+            const winningPlayer = table.players.find((p) => p.userId === winnerInfo.userId);
+            const reason = winnerInfo.reason;
+            const reasonDesc =
+              reason === 'military'
+                ? 'Military Supremacy'
+                : reason === 'science'
+                ? 'Scientific Supremacy'
+                : 'Civilian Victory';
+
+            table.winner = {
+              id: winningPlayer ? winningPlayer.userId : user.id,
+              name: winningPlayer ? winningPlayer.username : user.username,
+              avatar: winningPlayer ? winningPlayer.avatar : '🏛️',
+              timeSeconds: Math.round(
+                (Date.now() - (table.gameStartTime || Date.now())) / 1000
+              ),
+              role: `Master Builder (${reasonDesc})`,
+            };
+
+            table.messages.push({
+              id: 'msg_' + Date.now(),
+              senderId: 'system',
+              senderName: 'Arena System',
+              senderAvatar: '🏆',
+              text: `Empire Ascendant! ${table.winner.name} triumphed in 7 Wonders Duel via ${reasonDesc}!`,
+              timestamp: Date.now(),
+              isSystem: true,
+            });
+
+            io.to(table.id).emit('table:game_over', {
+              table,
+              winner: table.winner,
+            });
+            broadcastLobbyList();
+          }
+        } catch (err: any) {
+          console.error('Error handling seven-wonders-duel:action:', err);
         }
       }
     );

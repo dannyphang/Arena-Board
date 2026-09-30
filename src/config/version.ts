@@ -14,14 +14,28 @@ export interface AppVersionInfo {
 }
 
 export const APP_VERSION_INFO: AppVersionInfo = {
-  version: 'v1.5.2',
-  releaseDate: '2026-09-29 17:35 UTC',
-  buildId: 'bld-20260929173500-v152',
+  version: 'v1.6.0',
+  releaseDate: '2026-09-30 15:45 UTC',
+  buildId: 'bld-20260930154500-v160-swd',
   environment: typeof window !== 'undefined' ? window.location.hostname : 'production',
-  latestPrompt: "Add README, package-lock, and auto-version hook",
+  latestPrompt: "Add 7 Wonders - Duel with official spritesheets, draft pyramid, military track, and solo/multiplayer arena",
   promptDescription:
-    "Add README, package-lock, and auto-version hook",
+    "Added 7 Wonders - Duel with official spritesheets, draft pyramid, military track, and solo/multiplayer arena",
   changeLog: [
+    {
+      version: 'v1.6.0',
+      date: '2026-09-30',
+      prompt: "feat(swd): Add 7 Wonders - Duel with authentic sprites, draft pyramid, military & science supremacy",
+      highlights: [
+        "Integrated 7 Wonders - Duel using authentic spritesheets (cards, wonders, tokens, board, conflict pawn).",
+        "Interactive 1-2-1 Wonder Drafting phase with all 12 base wonders and individual effects.",
+        "Age I, II, and III draft pyramids with accurate uncovering and automatic card reveal mechanics.",
+        "Comprehensive resource production, bank trade calculations with Yellow reserve cards, and linking chain icons.",
+        "Vertical Conflict Board with moving conflict pawn, plunder loss tokens (-2, -5 coins), and 5 Progress Tokens.",
+        "Three distinct victory paths: Military Supremacy, Scientific Supremacy (6 symbols), and Civilian Victory point calculations.",
+        "Smart AI bot for solo practice and full real-time multiplayer support via WebSockets."
+      ],
+    },
     {
       version: 'v1.5.2',
       date: '2026-09-29',

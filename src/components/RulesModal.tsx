@@ -31,13 +31,14 @@ import {
   Swords,
   Gift,
   Crown,
+  Landmark,
 } from 'lucide-react';
 
 interface RulesModalProps {
   isOpen: boolean;
   onClose: () => void;
-  defaultGame?: 'genius-square' | 'mr-jack' | 'catan' | 'ticket-to-ride';
-  currentGame?: 'genius-square' | 'mr-jack' | 'catan' | 'ticket-to-ride';
+  defaultGame?: 'genius-square' | 'mr-jack' | 'catan' | 'ticket-to-ride' | 'seven-wonders-duel';
+  currentGame?: 'genius-square' | 'mr-jack' | 'catan' | 'ticket-to-ride' | 'seven-wonders-duel';
 }
 
 export const RulesModal: React.FC<RulesModalProps> = ({
@@ -47,7 +48,7 @@ export const RulesModal: React.FC<RulesModalProps> = ({
   currentGame,
 }) => {
   const effectiveGame = currentGame || defaultGame;
-  const [activeGame, setActiveGame] = useState<'genius-square' | 'mr-jack' | 'catan' | 'ticket-to-ride'>(effectiveGame);
+  const [activeGame, setActiveGame] = useState<'genius-square' | 'mr-jack' | 'catan' | 'ticket-to-ride' | 'seven-wonders-duel'>(effectiveGame);
 
   useEffect(() => {
     if (currentGame) {
@@ -98,6 +99,8 @@ export const RulesModal: React.FC<RulesModalProps> = ({
                     ? 'Mr. Jack in London — Rules & Mechanics'
                     : displayGame === 'ticket-to-ride'
                     ? 'Ticket to Ride: Europe — Official Rulebook & Scoring'
+                    : displayGame === 'seven-wonders-duel'
+                    ? '7 Wonders - Duel — Official Rulebook & Mechanics'
                     : 'Genius Square — Rules & Guide'}
                 </h3>
                 <p className="text-xs text-slate-400">
@@ -175,6 +178,20 @@ export const RulesModal: React.FC<RulesModalProps> = ({
                 }`}
               >
                 <Route className="w-3.5 h-3.5" /> Ticket to Ride: Europe
+              </button>
+
+              <button
+                onClick={() => {
+                  sounds.playPop();
+                  setActiveGame('seven-wonders-duel');
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                  displayGame === 'seven-wonders-duel'
+                    ? 'bg-amber-500 text-slate-950 shadow-md'
+                    : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Swords className="w-3.5 h-3.5" /> 7 Wonders Duel
               </button>
             </div>
           )}
@@ -767,6 +784,110 @@ export const RulesModal: React.FC<RulesModalProps> = ({
                   • <strong>Stockpile Locomotives:</strong> Ferries require wild locomotives, and tunnels may demand unexpected extra cards. Keep 2–3 locomotives in reserve.<br />
                   • <strong>Claim Chokepoints Early:</strong> Key transit hubs like Frankfurt, Wien, and Paris have limited parallel routes in smaller player counts. Claim critical bottleneck paths before rivals block you.<br />
                   • <strong>Watch Opponent Train Counts:</strong> Monitor how many train cars opponents have left so you aren't caught holding unfinished high-value tickets when the final round is triggered!
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* GAME 5: 7 WONDERS DUEL */}
+          {displayGame === 'seven-wonders-duel' && (
+            <div className="space-y-6">
+              {/* Introduction Banner */}
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-purple-500/10 border border-amber-500/30 flex items-start gap-4">
+                <div className="p-3 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 shrink-0">
+                  <Swords className="w-7 h-7" />
+                </div>
+                <div>
+                  <h4 className="text-base font-extrabold text-slate-100 font-['Fredoka'] mb-1">
+                    7 Wonders - Duel — Head-to-Head Civilization Battle
+                  </h4>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    Designed by Antoine Bauza and Bruno Cathala, <strong>7 Wonders - Duel</strong> is a 2-player strategic card-drafting game spanning three historic Ages. Players draft cards arranged in overlapping pyramids, construct buildings and wonders, advance military forces, and research scientific disciplines.
+                  </p>
+                </div>
+              </div>
+
+              {/* 1. Three Paths to Victory */}
+              <div className="space-y-3">
+                <h5 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                  <Trophy className="w-4 h-4 text-amber-400" /> Three Ways to Win
+                </h5>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="p-3 rounded-xl bg-rose-950/20 border border-rose-800/40 space-y-1">
+                    <span className="font-extrabold text-sm text-rose-300 font-['Fredoka'] flex items-center gap-1">
+                      ⚔️ Military Supremacy
+                    </span>
+                    <p className="text-[11px] text-slate-300 leading-relaxed">
+                      Push the conflict pawn to the enemy capital (space +9 or -9). <strong>Immediate Victory!</strong> The game ends on the spot.
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-emerald-950/20 border border-emerald-800/40 space-y-1">
+                    <span className="font-extrabold text-sm text-emerald-300 font-['Fredoka'] flex items-center gap-1">
+                      🔬 Scientific Supremacy
+                    </span>
+                    <p className="text-[11px] text-slate-300 leading-relaxed">
+                      Collect <strong>6 different scientific symbols</strong> (from green cards and the Law progress token). <strong>Immediate Victory!</strong>
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-amber-950/20 border border-amber-800/40 space-y-1">
+                    <span className="font-extrabold text-sm text-amber-300 font-['Fredoka'] flex items-center gap-1">
+                      🏛️ Civilian Victory
+                    </span>
+                    <p className="text-[11px] text-slate-300 leading-relaxed">
+                      If no supremacy is achieved by the end of Age III, players tally total Victory Points from civilian cards, wonders, tokens, guilds, coins, and military track zones!
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Turn Actions */}
+              <div className="space-y-3">
+                <h5 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                  <Target className="w-4 h-4 text-amber-400" /> What You Do on Your Turn
+                </h5>
+                <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-300 space-y-2">
+                  <p>
+                    On your turn, choose <strong>1 available (uncovered) card</strong> from the Age structure and perform ONE of three actions:
+                  </p>
+                  <ul className="list-disc pl-5 space-y-1 text-[11px] text-slate-300">
+                    <li>
+                      <strong>1. Construct the Building:</strong> Pay its resource cost in coins or trade from the bank, or build it for <strong>FREE</strong> if you have the linking chain icon! Add it to your city.
+                    </li>
+                    <li>
+                      <strong>2. Discard for Coins:</strong> Put the card in the discard pile and immediately gain <strong>2 coins + 1 coin per Yellow commercial card</strong> already in your city.
+                    </li>
+                    <li>
+                      <strong>3. Construct a Wonder:</strong> Pay the cost of one of your unbuilt wonders, and tuck this card face-down beneath the wonder to activate its permanent benefits, shields, points, or extra turn!
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* 3. Resources & Commercial Trading */}
+              <div className="space-y-3">
+                <h5 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                  <Coins className="w-4 h-4 text-amber-400" /> Resources & Trade with the Bank
+                </h5>
+                <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-300 space-y-2">
+                  <p className="text-[11px] leading-relaxed">
+                    • <strong>5 Resources:</strong> Wood 🪵, Clay 🧱, Stone 🪨 (Raw Materials - Brown cards), and Glass 🧪, Papyrus 📜 (Manufactured Goods - Grey cards).
+                  </p>
+                  <p className="text-[11px] leading-relaxed">
+                    • <strong>Trading Cost:</strong> If you are missing a resource, you buy it from the bank for <strong>2 coins + (number of matching resource symbols on the opponent's Brown/Grey cards)</strong>!
+                  </p>
+                  <p className="text-[11px] leading-relaxed">
+                    • <strong>Yellow Reserves:</strong> Owning a Yellow trading card (Stone Reserve, Clay Reserve, Wood Reserve, Custom House) permanently fixes the trade price of that resource to <strong>1 coin</strong>.
+                  </p>
+                </div>
+              </div>
+
+              {/* 4. Wonders & Extra Turn Rule */}
+              <div className="p-3 rounded-xl bg-purple-950/20 border border-purple-800/40 text-xs text-purple-200 space-y-1.5">
+                <strong className="text-purple-300 flex items-center gap-1">
+                  <Landmark className="w-3.5 h-3.5" /> 7 Wonders Limit & "Play Again":
+                </strong>
+                <p className="text-[11px] leading-relaxed text-slate-300">
+                  Each player drafts 4 wonders at game start, but <strong>only 7 wonders can be built total</strong> across both players. As soon as a 7th wonder is completed, the 8th wonder is lost forever! Wonders with the lightning bolt grant an immediate <strong>Extra Turn (Play Again)</strong>.
                 </p>
               </div>
             </div>

@@ -100,8 +100,8 @@ export const CreateTableModal: React.FC<CreateTableModalProps> = ({
 
   // Max players depends on the selected game:
   // Catan (and empty initial selection): up to 4 players total (1 host + 3 opponents)
-  // Genius Square & Mr. Jack: strictly 2 players total (1 host + 1 opponent)
-  const isTwoPlayerOnly = gameId === 'genius-square' || gameId === 'mr-jack';
+  // Genius Square, Mr. Jack & 7 Wonders Duel: strictly 2 players total (1 host + 1 opponent)
+  const isTwoPlayerOnly = gameId === 'genius-square' || gameId === 'mr-jack' || gameId === 'seven-wonders-duel';
   const maxTotalPlayers = gameId === 'ticket-to-ride' ? 5 : isTwoPlayerOnly ? 2 : 4;
   const maxOpponents = maxTotalPlayers - 1;
 
@@ -109,7 +109,7 @@ export const CreateTableModal: React.FC<CreateTableModalProps> = ({
   const handleGameChange = (newGame: GameType | '') => {
     setGameId(newGame);
     setError('');
-    const is2P = newGame === 'genius-square' || newGame === 'mr-jack';
+    const is2P = newGame === 'genius-square' || newGame === 'mr-jack' || newGame === 'seven-wonders-duel';
     const newMaxOpp = is2P ? 1 : 3;
     if (opponents.length > newMaxOpp) {
       setOpponents((prev) => prev.slice(0, newMaxOpp));
@@ -180,6 +180,8 @@ export const CreateTableModal: React.FC<CreateTableModalProps> = ({
         ? `${currentUser.username}'s Catan Colony`
         : gameId === 'mr-jack'
         ? `${currentUser.username}'s Mr. Jack Table`
+        : gameId === 'seven-wonders-duel'
+        ? `${currentUser.username}'s 7 Wonders Duel`
         : `${currentUser.username}'s Genius Square Table`);
 
     onCreateTable({
@@ -277,6 +279,9 @@ export const CreateTableModal: React.FC<CreateTableModalProps> = ({
                   </option>
                   <option value="ticket-to-ride" className="text-slate-100 bg-slate-900">
                     Ticket to Ride: Europe (2 - 5 Players / Solo)
+                  </option>
+                  <option value="seven-wonders-duel" className="text-slate-100 bg-slate-900">
+                    7 Wonders - Duel (2 Players / Solo)
                   </option>
                   <option value="quoridor" disabled className="text-slate-500 bg-slate-900">
                     Quoridor Arena (Coming Soon)
