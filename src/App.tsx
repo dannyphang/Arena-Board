@@ -278,18 +278,22 @@ export default function App() {
               ? 'The Settlers of Catan'
               : activeTable.gameId === 'mr-jack'
               ? 'Mr. Jack in London'
+              : activeTable.gameId === 'ticket-to-ride'
+              ? 'Ticket to Ride: Europe'
               : 'Genius Square'
             : soloGameId === 'catan'
             ? 'Catan (Solo)'
             : soloGameId === 'mr-jack'
             ? 'Mr. Jack (Solo)'
+            : soloGameId === 'ticket-to-ride'
+            ? 'Ticket to Ride: Europe (Solo)'
             : 'Genius Square (Solo)'
         }
         onOpenRules={() => {
           const currentGame = activeTable
-            ? (activeTable.gameId as 'genius-square' | 'mr-jack' | 'catan')
+            ? (activeTable.gameId as 'genius-square' | 'mr-jack' | 'catan' | 'ticket-to-ride')
             : isSoloPractice
-            ? (soloGameId as 'genius-square' | 'mr-jack' | 'catan')
+            ? (soloGameId as 'genius-square' | 'mr-jack' | 'catan' | 'ticket-to-ride')
             : undefined;
           setRulesGameId(currentGame);
           setIsRulesOpen(true);

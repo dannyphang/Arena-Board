@@ -101,8 +101,17 @@ export function createArenaServer(options?: { isStandalone?: boolean }) {
   const tables = new Map<string, TableRoom>(); // roomId -> TableRoom
   const botTimeouts = new Map<string, NodeJS.Timeout[]>(); // roomId -> pending timeouts
 
+  function sanitizeTable(table: TableRoom) {
+    if (table.ttrState?.routes && (table.ttrState.routes as any)['smyrna-erzurum']) {
+      delete (table.ttrState.routes as any)['smyrna-erzurum'];
+    }
+  }
+
   function getPublicLobbies(): TableRoom[] {
-    return Array.from(tables.values()).filter((t) => !t.isPrivate);
+    return Array.from(tables.values()).filter((t) => {
+      sanitizeTable(t);
+      return !t.isPrivate;
+    });
   }
 
   function broadcastLobbyList() {
@@ -662,6 +671,7 @@ export function createArenaServer(options?: { isStandalone?: boolean }) {
           console.log('[TTR] Processing action:', data.action.type, 'state:', table.ttrState.turnState.state, 'actingUser:', actingUserId, 'currentPlayer:', table.ttrState.playerOrder[table.ttrState.currentPlayerIndex]);
           // Apply action using the engine
           table.ttrState = processTTRAction(table.ttrState, actingUserId, data.action);
+          sanitizeTable(table);
 
           io.to(table.id).emit('table:ttr_sync', {
             gameState: table.ttrState,

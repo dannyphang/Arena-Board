@@ -107,7 +107,6 @@ export const INITIAL_ROUTES: Record<string, Route> = {
   'constantinople-angora': { id: 'constantinople-angora', city1: CITIES.CONSTANTINOPLE, city2: CITIES.ANGORA, length: 2, color: 'any', isTunnel: true },
   'constantinople-sevastopol': { id: 'constantinople-sevastopol', city1: CITIES.CONSTANTINOPLE, city2: CITIES.SEVASTOPOL, length: 4, color: 'any', locomotivesRequired: 2 }, // Ferry
   'smyrna-angora': { id: 'smyrna-angora', city1: CITIES.SMYRNA, city2: CITIES.ANGORA, length: 3, color: 'orange', isTunnel: true },
-  'smyrna-erzurum': { id: 'smyrna-erzurum', city1: CITIES.SMYRNA, city2: CITIES.ERZURUM, length: 5, color: 'any', isTunnel: true },
   'angora-erzurum': { id: 'angora-erzurum', city1: CITIES.ANGORA, city2: CITIES.ERZURUM, length: 3, color: 'black' },
   'erzurum-sevastopol': { id: 'erzurum-sevastopol', city1: CITIES.ERZURUM, city2: CITIES.SEVASTOPOL, length: 4, color: 'any', locomotivesRequired: 2 }, // Ferry
   'erzurum-sochi': { id: 'erzurum-sochi', city1: CITIES.ERZURUM, city2: CITIES.SOCHI, length: 3, color: 'red', isTunnel: true },

@@ -84,6 +84,8 @@ export const RulesModal: React.FC<RulesModalProps> = ({
                   <Compass className="w-6 h-6" />
                 ) : displayGame === 'mr-jack' ? (
                   <Search className="w-6 h-6" />
+                ) : displayGame === 'ticket-to-ride' ? (
+                  <Route className="w-6 h-6" />
                 ) : (
                   <Dices className="w-6 h-6" />
                 )}
@@ -94,6 +96,8 @@ export const RulesModal: React.FC<RulesModalProps> = ({
                     ? 'The Settlers of Catan — Official Almanac & Rules'
                     : displayGame === 'mr-jack'
                     ? 'Mr. Jack in London — Rules & Mechanics'
+                    : displayGame === 'ticket-to-ride'
+                    ? 'Ticket to Ride: Europe — Official Rulebook & Scoring'
                     : 'Genius Square — Rules & Guide'}
                 </h3>
                 <p className="text-xs text-slate-400">
@@ -157,6 +161,20 @@ export const RulesModal: React.FC<RulesModalProps> = ({
                 }`}
               >
                 <Compass className="w-3.5 h-3.5" /> The Settlers of Catan
+              </button>
+
+              <button
+                onClick={() => {
+                  sounds.playPop();
+                  setActiveGame('ticket-to-ride');
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                  displayGame === 'ticket-to-ride'
+                    ? 'bg-amber-500 text-slate-950 shadow-md'
+                    : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Route className="w-3.5 h-3.5" /> Ticket to Ride: Europe
               </button>
             </div>
           )}
@@ -249,7 +267,7 @@ export const RulesModal: React.FC<RulesModalProps> = ({
                 <strong>The Witness Call Rule:</strong> At the end of each round, Jack must declare whether his character is <em>Visible</em> (next to a lit gaslight, adjacent to another character, or hit by Watson's lantern beam) or <em>Invisible</em> (in the shadows). This eliminates half the suspects each round!
               </div>
             </div>
-          ) : (
+          ) : displayGame === 'catan' ? (
             /* DETAILED & COMPREHENSIVE CATAN RULES */
             <div className="space-y-5">
               {/* 1. Objective & Point System */}
@@ -591,6 +609,164 @@ export const RulesModal: React.FC<RulesModalProps> = ({
                   • Diversify numbers: Avoid placing all settlements on the same dice numbers so you earn resources on nearly every turn.<br />
                   • Secure Brick & Lumber early to expand your road web before rivals box you in.<br />
                   • Ore and Wheat become crucial in mid-to-late game for City upgrades and Development Cards!
+                </p>
+              </div>
+            </div>
+          ) : (
+            /* TICKET TO RIDE: EUROPE OFFICIAL RULEBOOK & ALMANAC */
+            <div className="space-y-4">
+              {/* 1. Game Objective */}
+              <div className="bg-slate-950/60 border border-slate-800 p-4 rounded-xl">
+                <h4 className="text-base font-bold text-amber-400 mb-1 flex items-center gap-2 font-['Fredoka']">
+                  <Route className="w-4 h-4" /> Ticket to Ride: Europe — Game Objective
+                </h4>
+                <p className="text-xs">
+                  Travel across turn-of-the-century Europe! Compete with fellow rail barons to connect iconic European cities, claim high-value railway routes across mountains and seas, complete secret Destination Tickets, and build the longest continuous railway across the continent.
+                </p>
+              </div>
+
+              {/* 2. On Your Turn (4 Actions) */}
+              <div className="bg-slate-950/70 border border-slate-800 p-4 rounded-2xl space-y-2.5">
+                <div className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                  <Target className="w-3.5 h-3.5" /> Turn Sequence: Take Exactly 1 of 4 Actions
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                  <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
+                    <span className="font-bold text-amber-300 flex items-center gap-1.5">
+                      <span>🃏</span> 1. Draw Train Car Cards
+                    </span>
+                    <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                      Draw 2 train cards. You may choose face-up cards or blind cards from the top of the deck. If taking a face-up <strong>Locomotive (Wild)</strong>, it counts as your <em>entire</em> turn's draw.
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
+                    <span className="font-bold text-amber-300 flex items-center gap-1.5">
+                      <span>🚂</span> 2. Claim a Route
+                    </span>
+                    <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                      Discard a set of matching colored cards equal to the length of the route. Place your plastic train cars on the track and immediately score points on the board track.
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
+                    <span className="font-bold text-amber-300 flex items-center gap-1.5">
+                      <span>🎫</span> 3. Draw Destination Tickets
+                    </span>
+                    <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                      Draw 3 Destination Tickets from the top of the deck. You must keep <strong>at least 1</strong> ticket (up to all 3). Any returned tickets are placed on the bottom of the deck.
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
+                    <span className="font-bold text-amber-300 flex items-center gap-1.5">
+                      <span>🚉</span> 4. Build a Train Station
+                    </span>
+                    <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                      Place a station in any unoccupied city. Costs 1 card for 1st station, 2 matching cards for 2nd, 3 matching for 3rd. Allows you to borrow 1 opponent route into that city to complete tickets!
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Official Route Scoring Table */}
+              <div className="bg-slate-950/70 border border-slate-800 p-4 rounded-2xl space-y-2.5">
+                <div className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center justify-between">
+                  <span>Official Route Scoring Chart</span>
+                  <span className="text-[10px] text-slate-400 font-normal">Immediate Points Upon Claim</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 text-center text-xs font-mono">
+                  <div className="p-2 rounded-xl bg-slate-900 border border-slate-800">
+                    <div className="text-slate-400 text-[10px]">1 Car</div>
+                    <div className="text-amber-400 font-bold text-sm">1 Pt</div>
+                  </div>
+                  <div className="p-2 rounded-xl bg-slate-900 border border-slate-800">
+                    <div className="text-slate-400 text-[10px]">2 Cars</div>
+                    <div className="text-amber-400 font-bold text-sm">2 Pts</div>
+                  </div>
+                  <div className="p-2 rounded-xl bg-slate-900 border border-slate-800">
+                    <div className="text-slate-400 text-[10px]">3 Cars</div>
+                    <div className="text-amber-400 font-bold text-sm">4 Pts</div>
+                  </div>
+                  <div className="p-2 rounded-xl bg-slate-900 border border-slate-800">
+                    <div className="text-slate-400 text-[10px]">4 Cars</div>
+                    <div className="text-amber-400 font-bold text-sm">7 Pts</div>
+                  </div>
+                  <div className="p-2 rounded-xl bg-slate-900 border border-slate-800">
+                    <div className="text-slate-400 text-[10px]">6 Cars</div>
+                    <div className="text-amber-400 font-bold text-sm">15 Pts</div>
+                  </div>
+                  <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/30">
+                    <div className="text-amber-300 text-[10px]">8 Cars</div>
+                    <div className="text-amber-300 font-bold text-sm">21 Pts!</div>
+                  </div>
+                </div>
+                <p className="text-[11px] text-slate-400 italic text-center">
+                  *The 8-car track between Stockholm and Petrograd is the single highest-scoring route on the board!
+                </p>
+              </div>
+
+              {/* 4. Special Route Mechanics (Ferries & Tunnels) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="bg-slate-950/70 border border-blue-500/30 p-3.5 rounded-2xl space-y-1.5">
+                  <div className="text-blue-400 font-bold flex items-center gap-1.5">
+                    <Anchor className="w-4 h-4" /> Ferries (Water Crossing Routes)
+                  </div>
+                  <p className="text-slate-300 text-[11px] leading-relaxed">
+                    Ferries cross bodies of water (e.g., London–Dieppe, Palermo–Smyrna). Each ferry slot marked with an <strong>Anchor (⚓)</strong> requires a <strong>Locomotive card</strong> to claim. The remaining cars may be paid with cards matching the route color.
+                  </p>
+                </div>
+
+                <div className="bg-slate-950/70 border border-amber-500/30 p-3.5 rounded-2xl space-y-1.5">
+                  <div className="text-amber-400 font-bold flex items-center gap-1.5">
+                    <Castle className="w-4 h-4" /> Tunnels (Mountain Routes)
+                  </div>
+                  <p className="text-slate-300 text-[11px] leading-relaxed">
+                    Tunnels cut through mountain ranges. After you declare the route and play cards, <strong>3 cards are drawn from the train deck</strong>. For each drawn card that matches your route color or is a locomotive, you must pay <strong>1 additional card</strong> from your hand! If you cannot or choose not to, return your cards to hand without penalty.
+                  </p>
+                </div>
+              </div>
+
+              {/* 5. Destination Tickets & End-Game Scoring */}
+              <div className="bg-slate-950/70 border border-slate-800 p-4 rounded-2xl space-y-2.5">
+                <div className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                  <Award className="w-3.5 h-3.5" /> Destination Tickets & End-Game Scoring
+                </div>
+                <div className="space-y-2 text-xs text-slate-300 leading-relaxed">
+                  <p>
+                    • <strong>Completed Tickets:</strong> If you connect the two cities listed on your Destination Ticket with an unbroken path of your trains by the end of the game, <strong>add the ticket's point value</strong> to your score!
+                  </p>
+                  <p>
+                    • <strong>Uncompleted Tickets:</strong> If you fail to connect the two cities, <strong>subtract that point value</strong> from your final score! Keep tickets carefully.
+                  </p>
+                  <p>
+                    • <strong>Unused Train Stations:</strong> Each of your 3 Train Stations that was not built earns you <strong>+4 points</strong> at the end of the game (up to +12 points).
+                  </p>
+                  <p>
+                    • <strong>European Express (+10 Points):</strong> Awarded to the player with the longest continuous unbroken path of train cars on the map!
+                  </p>
+                </div>
+              </div>
+
+              {/* 6. End of Game Trigger */}
+              <div className="p-3 rounded-xl bg-rose-950/20 border border-rose-800/40 text-xs text-rose-200 space-y-1">
+                <strong className="text-rose-300 flex items-center gap-1">
+                  <AlertTriangle className="w-3.5 h-3.5" /> Game Conclusion Trigger:
+                </strong>
+                <p className="text-[11px] leading-relaxed text-slate-300">
+                  When any player's supply of colored train cars drops to <strong>2 or fewer</strong> at the end of their turn, every player (including that player) gets <strong>one final turn</strong> before final scoring takes place!
+                </p>
+              </div>
+
+              {/* 7. Pro Strategy Tips */}
+              <div className="p-3 rounded-xl bg-emerald-950/20 border border-emerald-800/40 text-xs text-emerald-200 space-y-1">
+                <strong className="text-emerald-300 flex items-center gap-1">
+                  <Lightbulb className="w-3.5 h-3.5" /> Europe Master Railroader Tips:
+                </strong>
+                <p className="text-[11px] leading-relaxed text-slate-300">
+                  • <strong>Stockpile Locomotives:</strong> Ferries require wild locomotives, and tunnels may demand unexpected extra cards. Keep 2–3 locomotives in reserve.<br />
+                  • <strong>Claim Chokepoints Early:</strong> Key transit hubs like Frankfurt, Wien, and Paris have limited parallel routes in smaller player counts. Claim critical bottleneck paths before rivals block you.<br />
+                  • <strong>Watch Opponent Train Counts:</strong> Monitor how many train cars opponents have left so you aren't caught holding unfinished high-value tickets when the final round is triggered!
                 </p>
               </div>
             </div>
