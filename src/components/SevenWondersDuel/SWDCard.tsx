@@ -6,6 +6,7 @@ import {
   SWD_WONDER_IMAGES,
   SWD_TOKEN_IMAGES,
   SWD_CARD_BACKS,
+  SWD_RESOURCE_ICONS,
 } from '../../games/seven-wonders-duel/assets';
 
 interface SWDCardProps {
@@ -22,6 +23,8 @@ interface SWDCardProps {
   isSelected?: boolean;
   onClick?: () => void;
   showTooltip?: boolean;
+  tooltipSide?: 'right' | 'left' | 'top' | 'bottom';
+  tooltipVertical?: 'center' | 'top' | 'bottom';
 }
 
 export const SWDCard: React.FC<SWDCardProps> = ({
@@ -38,10 +41,28 @@ export const SWDCard: React.FC<SWDCardProps> = ({
   isSelected = false,
   onClick,
   showTooltip = true,
+  tooltipSide = 'right',
+  tooltipVertical = 'center',
 }) => {
   const building = propBuilding || (cardId ? BUILDINGS[cardId] : undefined);
   const wonder = propWonder || (wonderId ? WONDERS[wonderId] : undefined);
   const token = propToken || (tokenId ? PROGRESS_TOKENS[tokenId] : undefined);
+
+  let tooltipPlacementClass = '';
+  if (tooltipSide === 'top') {
+    tooltipPlacementClass = 'bottom-[calc(100%+0.5rem)] left-1/2 -translate-x-1/2';
+  } else if (tooltipSide === 'bottom') {
+    tooltipPlacementClass = 'top-[calc(100%+0.5rem)] left-1/2 -translate-x-1/2';
+  } else {
+    const sideClass = tooltipSide === 'left' ? 'right-[calc(100%+0.5rem)]' : 'left-[calc(100%+0.5rem)]';
+    const vertClass =
+      tooltipVertical === 'top'
+        ? 'top-0'
+        : tooltipVertical === 'bottom'
+        ? 'bottom-0'
+        : 'top-1/2 -translate-y-1/2';
+    tooltipPlacementClass = `${sideClass} ${vertClass}`;
+  }
 
   // 1. Progress Token rendering
   if (token || tokenId) {
@@ -71,9 +92,9 @@ export const SWDCard: React.FC<SWDCardProps> = ({
             loading="lazy"
           />
         </div>
-        {/* Token info card — right side */}
+        {/* Token info card */}
         {showTooltip && (
-          <div className="absolute left-[calc(100%+0.5rem)] top-1/2 -translate-y-1/2 w-52 p-3 rounded-xl bg-slate-950/95 backdrop-blur-sm border border-slate-700 shadow-[0_0_30px_rgba(0,0,0,0.8)] opacity-0 group-hover/card:opacity-100 pointer-events-none transition-opacity duration-200 z-[200] flex flex-col gap-2">
+          <div className={`absolute ${tooltipPlacementClass} w-52 p-3 rounded-xl bg-slate-950/95 backdrop-blur-sm border border-slate-700 shadow-[0_0_30px_rgba(0,0,0,0.8)] opacity-0 group-hover/card:opacity-100 pointer-events-none transition-opacity duration-200 z-[200] flex flex-col gap-2`}>
             {imgUrl && (
               <div className="w-20 h-20 mx-auto rounded-full overflow-hidden border border-slate-800 shadow-inner">
                 <img src={imgUrl} alt={t.name} className="w-full h-full object-contain bg-amber-950/40" loading="lazy" />
@@ -101,19 +122,52 @@ export const SWDCard: React.FC<SWDCardProps> = ({
     }[size];
 
     return (
-      <div
-        onClick={onClick}
-        className={`relative rounded-xl border border-amber-800/80 shadow-xl transition-all select-none overflow-hidden bg-slate-900 ${
-          isAvailable ? 'ring-2 ring-amber-400 hover:ring-4 cursor-pointer hover:scale-105 hover:shadow-amber-500/30' : ''
-        } ${isSelected ? 'ring-4 ring-emerald-400 scale-105 shadow-emerald-500/40' : ''} ${wonderDimensions}`}
-      >
-        <img src={imgUrl} alt={w.name} className="w-full h-full object-cover rounded-xl" loading="lazy" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 pointer-events-none" />
-        <div className="absolute bottom-1 inset-x-1 text-center">
-          <span className="text-[10px] sm:text-xs font-bold font-['Fredoka'] text-amber-200 drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)] truncate block px-1">
-            {w.name}
-          </span>
+      <div className="relative group/card flex items-center justify-center">
+        <div
+          onClick={onClick}
+          className={`relative rounded-xl border border-amber-800/80 shadow-xl transition-all select-none overflow-hidden bg-slate-900 ${
+            isAvailable ? 'ring-2 ring-amber-400 hover:ring-4 cursor-pointer hover:scale-105 hover:shadow-amber-500/30' : ''
+          } ${isSelected ? 'ring-4 ring-emerald-400 scale-105 shadow-emerald-500/40' : ''} ${wonderDimensions}`}
+        >
+          <img src={imgUrl} alt={w.name} className="w-full h-full object-cover rounded-xl" loading="lazy" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 pointer-events-none" />
+          <div className="absolute bottom-1 inset-x-1 text-center">
+            <span className="text-[10px] sm:text-xs font-bold font-['Fredoka'] text-amber-200 drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)] truncate block px-1">
+              {w.name}
+            </span>
+          </div>
         </div>
+
+        {/* Wonder Tooltip */}
+        {showTooltip && (
+          <div className={`absolute ${tooltipPlacementClass} w-52 p-3 rounded-xl bg-slate-950/95 backdrop-blur-sm border border-slate-700 shadow-[0_0_30px_rgba(0,0,0,0.8)] opacity-0 group-hover/card:opacity-100 pointer-events-none transition-opacity duration-200 z-[200] flex flex-col gap-2`}>
+            <div className="w-full aspect-[5/3] rounded-lg overflow-hidden border border-slate-800 shadow-inner">
+              <img src={imgUrl} alt={w.name} className="w-full h-full object-cover" loading="lazy" />
+            </div>
+            <div className="text-center font-extrabold text-amber-300 text-sm font-['Fredoka']">{w.name}</div>
+            {w.cost && Object.keys(w.cost).length > 0 && (
+              <div className="flex flex-wrap items-center justify-center gap-1">
+                <span className="text-[10px] uppercase font-bold text-slate-500">Cost:</span>
+                {w.cost.wood ? <span className="inline-flex items-center gap-1 px-1 py-0.5 rounded bg-amber-950/80 text-amber-200 border border-amber-800/60 text-[10px] font-bold"><img src={SWD_RESOURCE_ICONS.wood} className="w-3 h-3 object-contain" alt="" /> {w.cost.wood}</span> : null}
+                {w.cost.clay ? <span className="inline-flex items-center gap-1 px-1 py-0.5 rounded bg-orange-950/80 text-orange-200 border border-orange-800/60 text-[10px] font-bold"><img src={SWD_RESOURCE_ICONS.clay} className="w-3 h-3 object-contain" alt="" /> {w.cost.clay}</span> : null}
+                {w.cost.stone ? <span className="inline-flex items-center gap-1 px-1 py-0.5 rounded bg-stone-800 text-stone-200 border border-stone-600/60 text-[10px] font-bold"><img src={SWD_RESOURCE_ICONS.stone} className="w-3 h-3 object-contain" alt="" /> {w.cost.stone}</span> : null}
+                {w.cost.glass ? <span className="inline-flex items-center gap-1 px-1 py-0.5 rounded bg-cyan-950/80 text-cyan-200 border border-cyan-800/60 text-[10px] font-bold"><img src={SWD_RESOURCE_ICONS.glass} className="w-3 h-3 object-contain" alt="" /> {w.cost.glass}</span> : null}
+                {w.cost.papyrus ? <span className="inline-flex items-center gap-1 px-1 py-0.5 rounded bg-yellow-950/80 text-yellow-200 border border-yellow-800/60 text-[10px] font-bold"><img src={SWD_RESOURCE_ICONS.papyrus} className="w-3 h-3 object-contain" alt="" /> {w.cost.papyrus}</span> : null}
+              </div>
+            )}
+            <div className="flex flex-wrap items-center justify-center gap-1 pt-1 border-t border-slate-800 text-[10px]">
+              {w.victoryPoints > 0 && <span className="text-amber-300 font-bold px-1">🏆 +{w.victoryPoints} VP</span>}
+              {w.military ? <span className="text-rose-400 font-bold px-1">🛡️ +{w.military} Shields</span> : null}
+              {w.coins ? <span className="inline-flex items-center gap-0.5 text-amber-400 font-bold px-1"><img src={SWD_RESOURCE_ICONS.coins} className="w-3 h-3 object-contain" alt="" /> +{w.coins} Coins</span> : null}
+              {w.extraTurn && <span className="text-amber-300 font-bold px-1">⚡ Extra Turn</span>}
+              {w.destroyOpponentBrown && <span className="text-amber-400 font-bold px-1">💥 Destroy Brown Card</span>}
+              {w.destroyOpponentGrey && <span className="text-slate-300 font-bold px-1">💥 Destroy Grey Card</span>}
+              {w.discardBuildingTake && <span className="text-purple-300 font-bold px-1">📦 Reclaim Discarded Card</span>}
+              {w.progressTokenFromBox && <span className="text-emerald-300 font-bold px-1">📜 Take Progress Token</span>}
+              {w.resourceChoice && <span className="text-sky-300 font-bold px-1">✨ Produces {w.resourceChoice.join('/')}</span>}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -176,9 +230,9 @@ export const SWDCard: React.FC<SWDCardProps> = ({
         )}
       </div>
 
-      {/* Building info card — right side */}
+      {/* Building info card */}
       {showTooltip && isFaceUp && (
-        <div className="absolute left-[calc(100%+0.5rem)] top-1/2 -translate-y-1/2 w-48 sm:w-56 p-3 rounded-xl bg-slate-950/95 backdrop-blur-sm border border-slate-700 shadow-[0_0_30px_rgba(0,0,0,0.8)] opacity-0 group-hover/card:opacity-100 pointer-events-none transition-opacity duration-200 z-[200] flex flex-col gap-2">
+        <div className={`absolute ${tooltipPlacementClass} w-48 sm:w-56 p-3 rounded-xl bg-slate-950/95 backdrop-blur-sm border border-slate-700 shadow-[0_0_30px_rgba(0,0,0,0.8)] opacity-0 group-hover/card:opacity-100 pointer-events-none transition-opacity duration-200 z-[200] flex flex-col gap-2`}>
           {imgUrl && (
             <div className="w-full aspect-[4/6] rounded-lg overflow-hidden border border-slate-800 shadow-inner">
               <img src={imgUrl} alt={b.name} className="w-full h-full object-cover" loading="lazy" />
@@ -193,12 +247,12 @@ export const SWDCard: React.FC<SWDCardProps> = ({
                 <span className="text-[10px] font-bold text-slate-400">Free</span>
               ) : (
                 <>
-                  {b.cost?.wood ? <span className="px-1 py-0.5 rounded bg-amber-950/80 text-amber-200 border border-amber-800/60 text-[10px] font-bold">🪵 {b.cost.wood}</span> : null}
-                  {b.cost?.clay ? <span className="px-1 py-0.5 rounded bg-orange-950/80 text-orange-200 border border-orange-800/60 text-[10px] font-bold">🧱 {b.cost.clay}</span> : null}
-                  {b.cost?.stone ? <span className="px-1 py-0.5 rounded bg-stone-800 text-stone-200 border border-stone-600/60 text-[10px] font-bold">🪨 {b.cost.stone}</span> : null}
-                  {b.cost?.glass ? <span className="px-1 py-0.5 rounded bg-cyan-950/80 text-cyan-200 border border-cyan-800/60 text-[10px] font-bold">🧪 {b.cost.glass}</span> : null}
-                  {b.cost?.papyrus ? <span className="px-1 py-0.5 rounded bg-yellow-950/80 text-yellow-200 border border-yellow-800/60 text-[10px] font-bold">📜 {b.cost.papyrus}</span> : null}
-                  {b.cost?.coins ? <span className="px-1 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold">🪙 {b.cost.coins}</span> : null}
+                  {b.cost?.wood ? <span className="inline-flex items-center gap-1 px-1 py-0.5 rounded bg-amber-950/80 text-amber-200 border border-amber-800/60 text-[10px] font-bold"><img src={SWD_RESOURCE_ICONS.wood} className="w-3 h-3 object-contain" alt="" /> {b.cost.wood}</span> : null}
+                  {b.cost?.clay ? <span className="inline-flex items-center gap-1 px-1 py-0.5 rounded bg-orange-950/80 text-orange-200 border border-orange-800/60 text-[10px] font-bold"><img src={SWD_RESOURCE_ICONS.clay} className="w-3 h-3 object-contain" alt="" /> {b.cost.clay}</span> : null}
+                  {b.cost?.stone ? <span className="inline-flex items-center gap-1 px-1 py-0.5 rounded bg-stone-800 text-stone-200 border border-stone-600/60 text-[10px] font-bold"><img src={SWD_RESOURCE_ICONS.stone} className="w-3 h-3 object-contain" alt="" /> {b.cost.stone}</span> : null}
+                  {b.cost?.glass ? <span className="inline-flex items-center gap-1 px-1 py-0.5 rounded bg-cyan-950/80 text-cyan-200 border border-cyan-800/60 text-[10px] font-bold"><img src={SWD_RESOURCE_ICONS.glass} className="w-3 h-3 object-contain" alt="" /> {b.cost.glass}</span> : null}
+                  {b.cost?.papyrus ? <span className="inline-flex items-center gap-1 px-1 py-0.5 rounded bg-yellow-950/80 text-yellow-200 border border-yellow-800/60 text-[10px] font-bold"><img src={SWD_RESOURCE_ICONS.papyrus} className="w-3 h-3 object-contain" alt="" /> {b.cost.papyrus}</span> : null}
+                  {b.cost?.coins ? <span className="inline-flex items-center gap-1 px-1 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold"><img src={SWD_RESOURCE_ICONS.coins} className="w-3 h-3 object-contain" alt="" /> {b.cost.coins}</span> : null}
                 </>
               )}
             </div>
@@ -207,13 +261,13 @@ export const SWDCard: React.FC<SWDCardProps> = ({
               <span className="text-[10px] uppercase font-bold text-slate-500">Reward:</span>
               {b.victoryPoints ? <span className="text-amber-300 font-bold px-1 text-[10px]">🏆 +{b.victoryPoints} VP</span> : null}
               {b.military ? <span className="text-rose-400 font-bold px-1 text-[10px]">🛡️ +{b.military}</span> : null}
-              {b.coins ? <span className="text-amber-400 font-bold px-1 text-[10px]">🪙 +{b.coins}</span> : null}
+              {b.coins ? <span className="inline-flex items-center gap-0.5 text-amber-400 font-bold px-1 text-[10px]"><img src={SWD_RESOURCE_ICONS.coins} className="w-3 h-3 object-contain" alt="" /> +{b.coins}</span> : null}
               {b.scientificSymbol ? <span className="text-emerald-300 font-bold px-1 text-[10px]">🔬 #{b.scientificSymbol}</span> : null}
-              {b.resources?.wood ? <span className="px-1 py-0.5 rounded bg-amber-950/80 text-amber-200 border border-amber-800/60 text-[10px] font-bold">🪵 {b.resources.wood}</span> : null}
-              {b.resources?.clay ? <span className="px-1 py-0.5 rounded bg-orange-950/80 text-orange-200 border border-orange-800/60 text-[10px] font-bold">🧱 {b.resources.clay}</span> : null}
-              {b.resources?.stone ? <span className="px-1 py-0.5 rounded bg-stone-800 text-stone-200 border border-stone-600/60 text-[10px] font-bold">🪨 {b.resources.stone}</span> : null}
-              {b.resources?.glass ? <span className="px-1 py-0.5 rounded bg-cyan-950/80 text-cyan-200 border border-cyan-800/60 text-[10px] font-bold">🧪 {b.resources.glass}</span> : null}
-              {b.resources?.papyrus ? <span className="px-1 py-0.5 rounded bg-yellow-950/80 text-yellow-200 border border-yellow-800/60 text-[10px] font-bold">📜 {b.resources.papyrus}</span> : null}
+              {b.resources?.wood ? <span className="inline-flex items-center gap-1 px-1 py-0.5 rounded bg-amber-950/80 text-amber-200 border border-amber-800/60 text-[10px] font-bold"><img src={SWD_RESOURCE_ICONS.wood} className="w-3 h-3 object-contain" alt="" /> {b.resources.wood}</span> : null}
+              {b.resources?.clay ? <span className="inline-flex items-center gap-1 px-1 py-0.5 rounded bg-orange-950/80 text-orange-200 border border-orange-800/60 text-[10px] font-bold"><img src={SWD_RESOURCE_ICONS.clay} className="w-3 h-3 object-contain" alt="" /> {b.resources.clay}</span> : null}
+              {b.resources?.stone ? <span className="inline-flex items-center gap-1 px-1 py-0.5 rounded bg-stone-800 text-stone-200 border border-stone-600/60 text-[10px] font-bold"><img src={SWD_RESOURCE_ICONS.stone} className="w-3 h-3 object-contain" alt="" /> {b.resources.stone}</span> : null}
+              {b.resources?.glass ? <span className="inline-flex items-center gap-1 px-1 py-0.5 rounded bg-cyan-950/80 text-cyan-200 border border-cyan-800/60 text-[10px] font-bold"><img src={SWD_RESOURCE_ICONS.glass} className="w-3 h-3 object-contain" alt="" /> {b.resources.glass}</span> : null}
+              {b.resources?.papyrus ? <span className="inline-flex items-center gap-1 px-1 py-0.5 rounded bg-yellow-950/80 text-yellow-200 border border-yellow-800/60 text-[10px] font-bold"><img src={SWD_RESOURCE_ICONS.papyrus} className="w-3 h-3 object-contain" alt="" /> {b.resources.papyrus}</span> : null}
               {b.resourceChoice && (
                 <span className="px-1 py-0.5 rounded bg-emerald-950/80 text-emerald-200 border border-emerald-800/60 text-[10px] font-bold">
                   ✨ {b.resourceChoice.join('/')}

@@ -119,3 +119,12 @@ export const SWD_BOARD_IMAGES = {
   coins: "/swd/pterodactyl/coins.png",
   victoryPoints: "/swd/pterodactyl/victorypoints.png",
 };
+
+export const SWD_RESOURCE_ICONS: Record<string, string> = {
+  wood: "/swd/pterodactyl/icons/wood.png",
+  clay: "/swd/pterodactyl/icons/clay.png",
+  stone: "/swd/pterodactyl/icons/stone.png",
+  glass: "/swd/pterodactyl/icons/glass.png",
+  papyrus: "/swd/pterodactyl/icons/papyrus.png",
+  coins: "/swd/pterodactyl/icons/coins.png",
+};

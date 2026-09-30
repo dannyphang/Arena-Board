@@ -10,11 +10,37 @@ interface SWDBoardProps {
   selectableTokens?: number[];
 }
 
-// Maps a conflict position (-9..+9) to a top% on the 740px board.
-// Track runs from ~4.8% (pos=-9, p2 capital) to ~91.2% (pos=+9, p1 capital).
+// Maps a conflict position (-9..+9) to a top% on the board.
+// Measured from military_board.png (268x949):
+// Center oval (pos=0) is at 50.23% (y=476.7).
+// Step per position is 4.78% (45.36px per step).
 function trackTop(pos: number): string {
-  return `${4.8 + ((pos + 9) / 18) * 86.4}%`;
+  return `${50.23 + pos * 4.78}%`;
 }
+
+// 5 printed circle slots on the green right panel:
+// Measured from military_board.png: cx = 80.2% (215px / 268px)
+// cy: 29.4%, 39.7%, 50.0%, 60.2%, 70.1%
+const PROGRESS_TOKEN_SLOTS = [
+  { top: '29.4%', left: '80.2%' },
+  { top: '39.7%', left: '80.2%' },
+  { top: '50.0%', left: '80.2%' },
+  { top: '60.2%', left: '80.2%' },
+  { top: '70.1%', left: '80.2%' },
+];
+
+// 4 printed rounded rectangle slots on the left for plunder/loot tokens:
+// Measured directly from military_board.png (268x949):
+// -6 (Northern Loot 5): top = 16.1%, left = 16.8%, width = 45px, height = 105px
+// -3 (Northern Loot 2): top = 30.1%, left = 15.5%, width = 40px, height = 94px
+// +3 (Southern Loot 2): top = 69.9%, left = 15.5%, width = 40px, height = 94px
+// +6 (Southern Loot 5): top = 83.7%, left = 16.8%, width = 45px, height = 105px
+const LOOT_TOKEN_SLOTS: Record<number, { top: string; left: string; width: string; height: string }> = {
+  [-6]: { top: '16.1%', left: '16.8%', width: '45px', height: '105px' },
+  [-3]: { top: '30.1%', left: '15.5%', width: '40px', height: '94px' },
+  [3]:  { top: '69.9%', left: '15.5%', width: '40px', height: '94px' },
+  [6]:  { top: '83.7%', left: '16.8%', width: '45px', height: '105px' },
+};
 
 export const SWDBoard: React.FC<SWDBoardProps> = ({
   state,
@@ -23,10 +49,6 @@ export const SWDBoard: React.FC<SWDBoardProps> = ({
 }) => {
   const p1Name = state.players[state.playerOrder[0]]?.name || 'Player 1';
   const p2Name = state.players[state.playerOrder[1]]?.name || 'Player 2';
-
-  // Progress token slots: evenly spaced across the 5 positions on the right column
-  // Corresponding to conflict positions -6, -3, 0, +3, +6
-  const progressSlotPositions = [-6, -3, 0, 3, 6];
 
   return (
     <div className="flex flex-col items-center select-none">
@@ -67,17 +89,23 @@ export const SWDBoard: React.FC<SWDBoardProps> = ({
         {state.militaryTokens.map((tok) => {
           if (tok.isTaken) return null;
           const isLarge = tok.position === -6 || tok.position === 6;
+          const slot = LOOT_TOKEN_SLOTS[tok.position] || {
+            top: trackTop(tok.position),
+            left: isLarge ? '16.8%' : '15.5%',
+            width: isLarge ? '45px' : '40px',
+            height: isLarge ? '105px' : '94px',
+          };
           return (
             <div
               key={tok.position}
               title={`Plunder Token: Opponent loses ${tok.value} coins when crossed`}
               className="absolute z-10 transition-transform hover:scale-105"
               style={{
-                top: trackTop(tok.position),
-                left: isLarge ? '5%' : '8%',
-                width: isLarge ? '38px' : '32px',
-                height: isLarge ? '86px' : '74px',
-                transform: 'translateY(-50%)',
+                top: slot.top,
+                left: slot.left,
+                width: slot.width,
+                height: slot.height,
+                transform: 'translate(-50%, -50%)',
               }}
             >
               <img
@@ -89,15 +117,15 @@ export const SWDBoard: React.FC<SWDBoardProps> = ({
           );
         })}
 
-        {/* Military Lead Pawn — z-10 so token tooltips (z-50) render above it */}
+        {/* Military Lead Pawn — centered exactly on the track ovals */}
         <div
           className="absolute z-10 transition-all duration-500 ease-out pointer-events-none"
           style={{
             top: trackTop(state.conflictPawnPosition),
-            left: '28%',
-            width: '52px',
-            height: '26px',
-            transform: 'translateY(-50%)',
+            left: '43.1%',
+            width: '50px',
+            height: '24px',
+            transform: 'translate(-50%, -50%)',
           }}
         >
           <img
@@ -107,16 +135,17 @@ export const SWDBoard: React.FC<SWDBoardProps> = ({
           />
         </div>
 
-        {/* 5 Board Progress Tokens — z-50 so their tooltips show above everything */}
+        {/* 5 Board Progress Tokens — aligned with the 5 printed circular slots */}
         {state.boardProgressTokens.map((tokenId, index) => {
           const isSelectable = selectableTokens?.includes(tokenId);
+          const slot = PROGRESS_TOKEN_SLOTS[index] || { top: '50.0%', left: '80.2%' };
           return (
             <div
               key={tokenId}
               className="absolute z-50"
               style={{
-                top: trackTop(progressSlotPositions[index]),
-                left: '72%',
+                top: slot.top,
+                left: slot.left,
                 transform: 'translate(-50%, -50%)',
               }}
             >

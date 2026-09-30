@@ -1,8 +1,9 @@
 import React from 'react';
 import { SWDGameState } from '../../games/seven-wonders-duel/types';
 import { WONDERS } from '../../games/seven-wonders-duel/constants';
+import { SWD_RESOURCE_ICONS } from '../../games/seven-wonders-duel/assets';
 import { SWDCard } from './SWDCard';
-import { Landmark, Sparkles, UserCheck } from 'lucide-react';
+import { Landmark, Sparkles, UserCheck, Zap, Shield, Trophy } from 'lucide-react';
 
 interface SWDWonderDraftProps {
   state: SWDGameState;
@@ -77,8 +78,8 @@ export const SWDWonderDraft: React.FC<SWDWonderDraftProps> = ({
                       {wonder.name}
                     </span>
                     {wonder.victoryPoints > 0 && (
-                      <span className="text-xs font-bold text-amber-300">
-                        +{wonder.victoryPoints} VP
+                      <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-300">
+                        <Trophy className="w-3.5 h-3.5 text-amber-400" /> +{wonder.victoryPoints} VP
                       </span>
                     )}
                   </div>
@@ -88,27 +89,91 @@ export const SWDWonderDraft: React.FC<SWDWonderDraftProps> = ({
                 </div>
 
                 <div className="space-y-1.5 text-xs text-slate-300">
-                  <div className="text-[11px] text-slate-400">
-                    {wonder.extraTurn && <span className="text-amber-300 font-bold">⚡ Play Again • </span>}
-                    {wonder.military && <span className="text-rose-400 font-bold">🛡️ +{wonder.military} Shields • </span>}
-                    {wonder.coins && <span className="text-amber-400 font-bold">💰 +{wonder.coins} Coins • </span>}
-                    {wonder.opponentCoinLoss && <span className="text-rose-300 font-bold">💸 Opponent -{wonder.opponentCoinLoss} Coins • </span>}
-                    {wonder.resourceChoice && (
-                      <span className="text-emerald-300 font-bold">✨ Choice ({wonder.resourceChoice.join('/')}) • </span>
+                  <div className="text-[11px] text-slate-400 flex flex-wrap items-center gap-1.5">
+                    {wonder.extraTurn && (
+                      <span className="inline-flex items-center gap-1 text-amber-300 font-bold">
+                        <Zap className="w-3 h-3 text-amber-400" /> Play Again
+                      </span>
                     )}
-                    {wonder.discardBuildingTake && <span className="text-sky-300 font-bold">📜 Take from discard • </span>}
-                    {wonder.progressTokenFromBox && <span className="text-purple-300 font-bold">🔬 Pick token from box • </span>}
-                    {wonder.destroyOpponentBrown && <span className="text-amber-500 font-bold">⚡ Destroy opponent brown • </span>}
-                    {wonder.destroyOpponentGrey && <span className="text-slate-400 font-bold">⚡ Destroy opponent grey • </span>}
+                    {wonder.military && (
+                      <span className="inline-flex items-center gap-1 text-rose-400 font-bold">
+                        <Shield className="w-3 h-3 text-rose-400" /> +{wonder.military} Shields
+                      </span>
+                    )}
+                    {wonder.coins && (
+                      <span className="inline-flex items-center gap-1 text-amber-400 font-bold">
+                        <img src={SWD_RESOURCE_ICONS.coins} className="w-3.5 h-3.5 object-contain" alt="" /> +{wonder.coins} Coins
+                      </span>
+                    )}
+                    {wonder.opponentCoinLoss && (
+                      <span className="inline-flex items-center gap-1 text-rose-300 font-bold">
+                        <img src={SWD_RESOURCE_ICONS.coins} className="w-3.5 h-3.5 object-contain" alt="" /> Opponent -{wonder.opponentCoinLoss} Coins
+                      </span>
+                    )}
+                    {wonder.resourceChoice && (
+                      <span className="inline-flex items-center gap-1 text-emerald-300 font-bold">
+                        <span>Produces:</span>
+                        <span className="inline-flex items-center gap-0.5">
+                          {wonder.resourceChoice.map((r) => (
+                            <img key={r} src={SWD_RESOURCE_ICONS[r]} className="w-3.5 h-3.5 object-contain inline" alt={r} title={r} />
+                          ))}
+                        </span>
+                      </span>
+                    )}
+                    {wonder.discardBuildingTake && (
+                      <span className="inline-flex items-center gap-1 text-sky-300 font-bold">
+                        <Sparkles className="w-3 h-3 text-sky-400" /> Take from discard
+                      </span>
+                    )}
+                    {wonder.progressTokenFromBox && (
+                      <span className="inline-flex items-center gap-1 text-purple-300 font-bold">
+                        <Sparkles className="w-3 h-3 text-purple-400" /> Pick token from box
+                      </span>
+                    )}
+                    {wonder.destroyOpponentBrown && (
+                      <span className="inline-flex items-center gap-1 text-amber-500 font-bold">
+                        <Zap className="w-3 h-3" /> Destroy opponent brown
+                      </span>
+                    )}
+                    {wonder.destroyOpponentGrey && (
+                      <span className="inline-flex items-center gap-1 text-slate-300 font-bold">
+                        <Zap className="w-3 h-3" /> Destroy opponent grey
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex flex-wrap items-center gap-1.5 pt-1">
                     <span className="text-[10px] uppercase font-bold text-slate-500 mr-0.5">Cost:</span>
-                    {wonder.cost?.wood ? <span className="px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-200 border border-amber-800/60 text-[10px] font-bold">🪵 {wonder.cost.wood}</span> : null}
-                    {wonder.cost?.clay ? <span className="px-1.5 py-0.5 rounded bg-orange-950/80 text-orange-200 border border-orange-800/60 text-[10px] font-bold">🧱 {wonder.cost.clay}</span> : null}
-                    {wonder.cost?.stone ? <span className="px-1.5 py-0.5 rounded bg-stone-800 text-stone-200 border border-stone-600/60 text-[10px] font-bold">🪨 {wonder.cost.stone}</span> : null}
-                    {wonder.cost?.glass ? <span className="px-1.5 py-0.5 rounded bg-cyan-950/80 text-cyan-200 border border-cyan-800/60 text-[10px] font-bold">🧪 {wonder.cost.glass}</span> : null}
-                    {wonder.cost?.papyrus ? <span className="px-1.5 py-0.5 rounded bg-yellow-950/80 text-yellow-200 border border-yellow-800/60 text-[10px] font-bold">📜 {wonder.cost.papyrus}</span> : null}
+                    {wonder.cost?.wood ? (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-200 border border-amber-800/60 text-[10px] font-bold">
+                        <img src={SWD_RESOURCE_ICONS.wood} alt="Wood" className="w-3.5 h-3.5 object-contain" />
+                        <span>{wonder.cost.wood}</span>
+                      </span>
+                    ) : null}
+                    {wonder.cost?.clay ? (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-orange-950/80 text-orange-200 border border-orange-800/60 text-[10px] font-bold">
+                        <img src={SWD_RESOURCE_ICONS.clay} alt="Clay" className="w-3.5 h-3.5 object-contain" />
+                        <span>{wonder.cost.clay}</span>
+                      </span>
+                    ) : null}
+                    {wonder.cost?.stone ? (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-stone-800 text-stone-200 border border-stone-600/60 text-[10px] font-bold">
+                        <img src={SWD_RESOURCE_ICONS.stone} alt="Stone" className="w-3.5 h-3.5 object-contain" />
+                        <span>{wonder.cost.stone}</span>
+                      </span>
+                    ) : null}
+                    {wonder.cost?.glass ? (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-cyan-950/80 text-cyan-200 border border-cyan-800/60 text-[10px] font-bold">
+                        <img src={SWD_RESOURCE_ICONS.glass} alt="Glass" className="w-3.5 h-3.5 object-contain" />
+                        <span>{wonder.cost.glass}</span>
+                      </span>
+                    ) : null}
+                    {wonder.cost?.papyrus ? (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-yellow-950/80 text-yellow-200 border border-yellow-800/60 text-[10px] font-bold">
+                        <img src={SWD_RESOURCE_ICONS.papyrus} alt="Papyrus" className="w-3.5 h-3.5 object-contain" />
+                        <span>{wonder.cost.papyrus}</span>
+                      </span>
+                    ) : null}
                   </div>
 
                   {isMyTurn && (
