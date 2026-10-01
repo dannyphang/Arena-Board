@@ -256,7 +256,7 @@ export default function App() {
         // Record match entry
         const opponent = activeTable?.players.find((p) => p.userId !== prev.id);
         const record: MatchRecord = {
-          id: 'rec_' + Date.now(),
+          id: 'rec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9),
           gameId: 'genius-square',
           date: new Date().toLocaleDateString(),
           opponentName: opponent ? opponent.username : isSoloPractice ? 'Solo Solver' : 'Opponent',
@@ -392,6 +392,7 @@ export default function App() {
               setRulesGameId(undefined);
               setIsRulesOpen(true);
             }}
+            onOpenProfile={() => setIsProfileOpen(true)}
           />
         )}
       </main>

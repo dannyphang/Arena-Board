@@ -153,9 +153,9 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
               </div>
             ) : (
               <div className="space-y-2">
-                {matches.slice(0, 5).map((m) => (
+                {matches.slice(0, 5).map((m, idx) => (
                   <div
-                    key={m.id}
+                    key={`${m.id || 'match'}-${idx}`}
                     className="flex items-center justify-between p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 text-xs"
                   >
                     <div className="flex items-center gap-2.5">

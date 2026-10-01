@@ -61,7 +61,28 @@ export function saveUser(user: UserProfile): void {
 export function getStoredMatches(): MatchRecord[] {
   try {
     const raw = localStorage.getItem(MATCHES_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const list: MatchRecord[] = JSON.parse(raw);
+      if (Array.isArray(list)) {
+        const seen = new Set<string>();
+        let hasDuplicates = false;
+        const sanitized = list.map((m, idx) => {
+          let id = m.id || `rec_${Date.now()}_${idx}`;
+          if (seen.has(id)) {
+            hasDuplicates = true;
+            id = `${id}_${idx}_${Math.random().toString(36).substring(2, 6)}`;
+          }
+          seen.add(id);
+          return { ...m, id };
+        });
+        if (hasDuplicates) {
+          try {
+            localStorage.setItem(MATCHES_KEY, JSON.stringify(sanitized.slice(0, 30)));
+          } catch (e) {}
+        }
+        return sanitized;
+      }
+    }
   } catch (e) {}
   return [];
 }
@@ -69,7 +90,11 @@ export function getStoredMatches(): MatchRecord[] {
 export function saveMatchRecord(record: MatchRecord): void {
   try {
     const list = getStoredMatches();
-    list.unshift(record);
+    const uniqueId =
+      record.id && !list.some((r) => r.id === record.id)
+        ? record.id
+        : `rec_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+    list.unshift({ ...record, id: uniqueId });
     localStorage.setItem(MATCHES_KEY, JSON.stringify(list.slice(0, 30)));
   } catch (e) {}
 }

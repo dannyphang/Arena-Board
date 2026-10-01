@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { TableRoom, GameType } from '../types/lobby';
 import { UserProfile } from '../types/user';
+import { UserStatsSummaryCard } from './UserStatsSummaryCard';
 import { sounds } from '../services/audio';
 import {
   Swords,
@@ -29,6 +30,7 @@ interface DashboardProps {
   onOpenCreateTable: (gameId?: GameType | '') => void;
   onJoinTable: (tableId: string, code?: string) => void;
   onOpenRules: () => void;
+  onOpenProfile?: () => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
@@ -38,6 +40,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onOpenCreateTable,
   onJoinTable,
   onOpenRules,
+  onOpenProfile,
 }) => {
   const [selectedGame, setSelectedGame] = useState<GameType>('genius-square');
   const [filterStatus, setFilterStatus] = useState<'all' | 'waiting' | 'in-game'>('all');
@@ -59,6 +62,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-8 text-slate-100">
+      {/* Player Career & Rating Summary */}
+      <UserStatsSummaryCard user={user} onOpenProfile={onOpenProfile} />
+
       {/* Game Catalog Selection */}
       <section className="space-y-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -246,7 +252,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             {/* Background Cover Overlay from repo */}
             <div className="absolute inset-0 opacity-25 group-hover:opacity-40 transition-opacity duration-300 pointer-events-none">
               <img
-                src="/swd/game_banner.jpg"
+                src="/swd/game_display3.jpg"
                 alt="7 Wonders - Duel"
                 className="w-full h-full object-cover object-center"
               />
@@ -254,8 +260,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
 
             <div className="relative z-10 flex items-start justify-between mb-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-600 via-orange-600 to-purple-800 flex items-center justify-center text-amber-300 shadow-md shadow-amber-500/20 border border-amber-400/30 group-hover:scale-105 transition overflow-hidden">
-                <img src="/swd/game_box.png" alt="7 Wonders Duel" className="w-full h-full object-cover" />
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-600 via-orange-600 to-purple-800 flex items-center justify-center text-amber-300 shadow-md shadow-amber-500/20 border border-amber-400/30 group-hover:scale-105 transition overflow-hidden p-0.5">
+                <img src="/swd/game_icon.png" alt="7 Wonders Duel" className="w-full h-full object-contain" />
               </div>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                 Active & Playable
