@@ -14,14 +14,22 @@ export interface AppVersionInfo {
 }
 
 export const APP_VERSION_INFO: AppVersionInfo = {
-  version: 'v1.6.2',
-  releaseDate: '2026-09-30 17:48 UTC',
-  buildId: 'bld-20260930174809-v162',
+  version: 'v1.6.3',
+  releaseDate: '2026-10-01 06:34 UTC',
+  buildId: 'bld-20261001063407-v163',
   environment: typeof window !== 'undefined' ? window.location.hostname : 'production',
   latestPrompt: "Add 7 Wonders - Duel with official spritesheets, draft pyramid, military track, and solo/multiplayer arena",
   promptDescription:
     "Added 7 Wonders - Duel with official spritesheets, draft pyramid, military track, and solo/multiplayer arena",
   changeLog: [
+    {
+      version: 'v1.6.3',
+      date: '2026-10-01',
+      prompt: "fixed AI 'play again' action",
+      highlights: [
+        "fixed AI 'play again' action"
+      ],
+    },
     {
       version: 'v1.6.2',
       date: '2026-09-30',

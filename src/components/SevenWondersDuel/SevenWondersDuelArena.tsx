@@ -126,7 +126,7 @@ export const SevenWondersDuelArena: React.FC<SevenWondersDuelArenaProps> = ({
     return () => {
       if (botTimeoutRef.current) clearTimeout(botTimeoutRef.current);
     };
-  }, [gameState.activePlayerId, gameState.currentPhase, gameState.wonderDraftStep]);
+  }, [gameState.activePlayerId, gameState.currentPhase, gameState.wonderDraftStep, gameState.actionLog.length]);
 
   const p1Id = gameState.playerOrder[0];
   const p2Id = gameState.playerOrder[1];
